@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Niger — Vulnérabilité à la sécheresse (IVS)</title>
+<meta name="description" content="Carte interactive de l'Indice de Vulnérabilité à la Sécheresse du Niger (1990-2024) : modèle multicritère recalculable, statistiques régionales, lecture hydrogéologique.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin=""></script>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --panel2:#f0f2f5; --text:#1c2230; --muted:#5b6474; --line:#dde1e8;
+  --accent:#1f6feb; --accent2:#0b7a63; --warn:#b4530a; --danger:#b42318;
+  --shadow:0 4px 18px rgba(16,24,40,.14);
+  --c1:#2c7bb6; --c2:#abd9e9; --c3:#ffffbf; --c4:#fdae61; --c5:#d7191c;
+  --header-h:52px; --panel-w:400px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1319; --panel:#171c24; --panel2:#1f2630; --text:#e6e9ef; --muted:#9aa4b5; --line:#2b3340;
+    --accent:#5aa2ff; --accent2:#3ec9a7; --warn:#f0a35c; --danger:#ff7b72; --shadow:0 4px 18px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1319; --panel:#171c24; --panel2:#1f2630; --text:#e6e9ef; --muted:#9aa4b5; --line:#2b3340;
+  --accent:#5aa2ff; --accent2:#3ec9a7; --warn:#f0a35c; --danger:#ff7b72; --shadow:0 4px 18px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden}
+button,select,input{font:inherit;color:inherit}
+h1,h2,h3,h4{margin:0;font-weight:650}
+a{color:var(--accent)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.92em;background:var(--panel2);padding:1px 4px;border-radius:4px}
+
+/* ---------- header ---------- */
+header{position:fixed;inset:0 0 auto 0;height:var(--header-h);display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);z-index:1200;box-shadow:var(--shadow)}
+header h1{font-size:15px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header h1 small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--panel2)}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.sm{padding:4px 8px;font-size:12.5px}
+.btn i{width:14px;text-align:center}
+.icon-btn{border:1px solid var(--line);background:var(--panel);width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:var(--panel2)}
+
+/* ---------- panel ---------- */
+#panel{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--panel-w);background:var(--panel);border-right:1px solid var(--line);z-index:1100;display:flex;flex-direction:column;transition:transform .25s}
+#panel.hidden{transform:translateX(-100%)}
+.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;padding:10px 6px;text-align:center;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);font-size:12.5px;white-space:nowrap;min-width:64px}
+.tab i{display:block;font-size:15px;margin-bottom:3px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab:hover{background:var(--panel2)}
+.views{flex:1;overflow:auto;padding:14px 16px 28px}
+.view{display:none}.view.active{display:block}
+.sec{margin-bottom:18px}
+.sec h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
+.sec h4{font-size:14px;margin:12px 0 6px}
+.sec p{margin:6px 0;color:var(--text)}
+.note{background:var(--panel2);border-left:3px solid var(--accent);padding:8px 10px;border-radius:6px;font-size:13px;margin:8px 0}
+.note.warn{border-left-color:var(--warn)}
+.note.danger{border-left-color:var(--danger)}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.row label{flex:1}
+.layer-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer}
+.layer-item:hover{background:var(--panel2)}
+.layer-item.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.layer-item .sw{width:34px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.15)}
+.layer-item .nm{flex:1;font-weight:600;font-size:13.5px}
+.layer-item .nm small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.wrow{display:grid;grid-template-columns:118px 1fr 48px;gap:8px;align-items:center;margin:8px 0}
+.wrow .lbl{font-size:13px}
+.wrow .lbl small{display:block;color:var(--muted);font-size:11px}
+.wrow .val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;background:var(--panel)}
+.chip:hover,.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th,table.tbl td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.tbl th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+table.tbl th.sorted::after{content:" ▾";color:var(--accent)}
+table.tbl tr.r{cursor:pointer}
+table.tbl tr.r:hover,table.tbl tr.sel{background:var(--panel2)}
+table.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.tbl.wrap th,table.tbl.wrap td{white-space:normal;vertical-align:top}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600;color:#111}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.kpi{background:var(--panel2);border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.bar{height:10px;border-radius:5px;display:flex;overflow:hidden;background:var(--line)}
+.bar i{display:block;height:100%}
+.leg5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:6px 0}
+.leg5 div{font-size:10.5px;text-align:center;padding:4px 2px;border-radius:4px;color:#111}
+.chartbox{position:relative;height:220px;margin:8px 0}
+.chartbox.tall{height:270px}
+details{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:6px 0}
+summary{cursor:pointer;font-weight:600}
+details p,details ul{font-size:13px}
+ul{padding-left:18px;margin:6px 0}li{margin:3px 0}
+.src{font-size:12px;color:var(--muted)}
+.eq{background:var(--panel2);padding:8px 10px;border-radius:6px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;overflow-x:auto}
+
+/* ---------- map ---------- */
+#map{position:fixed;top:var(--header-h);left:var(--panel-w);right:0;bottom:0;background:#dfe6ee;transition:left .25s}
+#map.full{left:0}
+.leaflet-container{font:inherit}
+.pixelated .leaflet-image-layer{image-rendering:pixelated;image-rendering:crisp-edges}
+.leaflet-tooltip.rlabel{background:transparent;border:0;box-shadow:none;font-weight:700;font-size:12px;color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none}
+.leaflet-popup-content{margin:10px 12px;font-size:13px;line-height:1.4}
+.leaflet-popup-content h4{margin:0 0 4px;font-size:14px}
+.leaflet-popup-content table{border-collapse:collapse;width:100%}
+.leaflet-popup-content td{padding:2px 4px;border-bottom:1px solid #eee}
+.leaflet-popup-content td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.leaflet-control-attribution{font-size:10px}
+.aq-icon{background:var(--panel);border:2px solid var(--accent2);color:var(--accent2);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:var(--shadow)}
+.city-icon{width:9px;height:9px;background:#111;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #111}
+
+/* floating widgets */
+.widget{position:absolute;z-index:1000;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;font-size:12.5px}
+#legend{left:12px;bottom:28px;min-width:230px;max-width:300px}
+#legend h4{font-size:12.5px;margin-bottom:6px}
+#legend .ramp{height:12px;border-radius:4px;border:1px solid rgba(0,0,0,.15)}
+#legend .ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:2px}
+#legend .cls{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+#legend .cls div{display:flex;align-items:center;gap:6px;font-size:11.5px}
+#legend .cls i{width:16px;height:11px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+#inspector{right:12px;bottom:56px;min-width:200px;display:none}
+#inspector.on{display:block}
+#inspector table{border-collapse:collapse;width:100%}
+#inspector td{padding:2px 4px;font-variant-numeric:tabular-nums}
+#inspector td:last-child{text-align:right;font-weight:600}
+#inspector .hdr{font-weight:700;margin-bottom:4px}
+#cmpbar{position:absolute;top:0;bottom:0;width:4px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.4);z-index:999;cursor:ew-resize;display:none;transform:translateX(-2px)}
+#cmpbar::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;border-radius:999px;padding:4px 7px;font-size:11px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+#cmplabels{position:absolute;top:10px;left:0;right:0;z-index:998;display:none;justify-content:space-between;padding:0 60px 0 12px;pointer-events:none}
+#cmplabels span{background:rgba(0,0,0,.65);color:#fff;padding:3px 8px;border-radius:6px;font-size:12px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:8px;z-index:2000;display:none;font-size:13px}
+#panelToggle{position:absolute;top:10px;left:10px;z-index:1000;display:none}
+#map.full #panelToggle{display:inline-flex}
+#loading{position:fixed;inset:0;background:var(--bg);z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted)}
+
+@media (max-width: 860px){
+  :root{--panel-w:100%}
+  header h1 small{display:none}
+  #panel{top:auto;height:58vh;border-right:0;border-top:1px solid var(--line);transform:translateY(0)}
+  #panel.hidden{transform:translateY(100%)}
+  #map{left:0}
+  #panel:not(.hidden) ~ #map{bottom:58vh}
+  #panelToggle{display:inline-flex}
+  #legend{bottom:22px;max-width:46%;min-width:0}
+  #inspector{max-width:50%}
+  .hide-m{display:none !important}
+}
+@media print{header,#panel,#inspector,.leaflet-control{display:none !important}#map{left:0;top:0}}
+</style>
+</head>
+<body>
+<div id="loading"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><div>Chargement des grilles et calcul de l'indice…</div></div>
+<header>
+  <button class="icon-btn" id="btnPanel" title="Afficher / masquer le panneau"><i class="fa-solid fa-bars"></i></button>
+  <h1>Niger — Indice de Vulnérabilité à la Sécheresse (IVS)<small>Analyse multicritère 1990-2024 · modèle recalculable · lecture hydrogéologique</small></h1>
+  <div class="spacer"></div>
+  <button class="btn sm" id="btnCompare" title="Comparer deux couches côte à côte"><i class="fa-solid fa-left-right"></i><span class="hide-m">Comparer</span></button>
+  <button class="btn sm" id="btnInspect" title="Afficher les valeurs sous le curseur"><i class="fa-solid fa-crosshairs"></i><span class="hide-m">Inspecteur</span></button>
+  <button class="btn sm" id="btnCsv" title="Exporter les statistiques régionales (CSV)"><i class="fa-solid fa-file-csv"></i><span class="hide-m">CSV</span></button>
+  <button class="btn sm" id="btnShare" title="Copier un lien reproduisant la vue et les poids actuels"><i class="fa-solid fa-link"></i><span class="hide-m">Lien</span></button>
+  <button class="icon-btn" id="btnTheme" title="Thème clair / sombre"><i class="fa-solid fa-circle-half-stroke"></i></button>
+</header>
+
+<aside id="panel">
+  <div class="tabs">
+    <div class="tab active" data-v="layers"><i class="fa-solid fa-layer-group"></i>Couches</div>
+    <div class="tab" data-v="regions"><i class="fa-solid fa-map-location-dot"></i>Régions</div>
+    <div class="tab" data-v="model"><i class="fa-solid fa-sliders"></i>Modèle</div>
+    <div class="tab" data-v="method"><i class="fa-solid fa-book-open"></i>Méthode</div>
+    <div class="tab" data-v="hydro"><i class="fa-solid fa-droplet"></i>Hydrogéo</div>
+    <div class="tab" data-v="limits"><i class="fa-solid fa-triangle-exclamation"></i>Limites</div>
+  </div>
+  <div class="views">
+
+    <!-- ========== COUCHES ========== -->
+    <div class="view active" id="v-layers">
+      <div class="sec">
+        <h3>Couche thématique affichée</h3>
+        <div id="layerList"></div>
+        <div id="yearBox" style="display:none;margin:4px 0 10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px">
+          <div class="row"><label style="font-size:12.5px">Saison <b id="yearVal"></b></label><button class="btn sm" id="yearPlay" title="Animer 1990 → 2024"><i class="fa-solid fa-play"></i></button></div>
+          <input type="range" id="yearSlider" min="1990" max="2024" step="1" value="2024">
+        </div>
+        <div class="row"><label>Opacité <b id="opVal">80 %</b></label></div>
+        <input type="range" id="opacity" min="0" max="100" value="80">
+        <div class="row" style="margin-top:8px"><label><input type="checkbox" id="smooth"> Lisser le rendu (interpolation)</label></div>
+      </div>
+      <div class="sec">
+        <h3>Habillage</h3>
+        <div class="row"><label><input type="checkbox" id="ovRegions" checked> Limites des régions</label></div>
+        <div class="row"><label><input type="checkbox" id="ovChoro"> Choroplèthe régional (IVS moyen)</label></div>
+        <div class="row"><label><input type="checkbox" id="ovLabels" checked> Noms des régions</label></div>
+        <div class="row"><label><input type="checkbox" id="ovCities" checked> Chefs-lieux</label></div>
+        <div class="row"><label><input type="checkbox" id="ovAquifers"> Unités hydrogéologiques (points indicatifs)</label></div>
+        <div class="row"><label><input type="checkbox" id="ovBorder" checked> Frontière nationale</label></div>
+      </div>
+      <div class="sec">
+        <h3>Fond de carte</h3>
+        <div class="chips" id="basemaps"></div>
+      </div>
+      <div class="sec">
+        <h3>Aller à</h3>
+        <select id="goto" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)"></select>
+      </div>
+      <details>
+        <summary><i class="fa-solid fa-circle-question" style="color:var(--accent)"></i> Mode d'emploi</summary>
+        <ul>
+          <li><b>Clic sur la carte</b> : valeurs du pixel (≈ 5,5 km), décomposition par facteur, statistiques de la région.</li>
+          <li><b>Inspecteur</b> (en-tête) : lecture continue des valeurs au survol.</li>
+          <li><b>Comparer</b> : deux couches côte à côte, barre glissante ; choisissez les couches dans les étiquettes.</li>
+          <li><b>Modèle</b> : modifiez les poids ou choisissez un scénario — carte, classement et graphiques sont recalculés instantanément.</li>
+          <li><b>Lien</b> : copie une URL qui restitue la vue, la couche, les poids et le mode.</li>
+          <li><b>CSV</b> : exporte le tableau régional du scénario courant.</li>
+        </ul>
+      </details>
+    </div>
+
+    <!-- ========== RÉGIONS ========== -->
+    <div class="view" id="v-regions">
+      <div class="sec">
+        <h3>Synthèse nationale</h3>
+        <div class="kpis" id="natKpis"></div>
+        <div class="bar" id="natBar"></div>
+        <div class="leg5" id="natLeg"></div>
+      </div>
+      <div class="sec">
+        <h3>Classement des régions <span class="src" id="modelTag"></span></h3>
+        <table class="tbl" id="regTable"><thead><tr>
+          <th data-k="rank">#</th><th data-k="region">Région</th><th data-k="ivs_mean" class="sorted">IVS</th><th data-k="pct_gt_0_6">≥ 0,6</th><th data-k="driver">Facteur dominant</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="sec" id="regDetail" style="display:none">
+        <h3>Détail — <span id="rdName"></span> <button class="btn sm" id="rdZoom" style="float:right"><i class="fa-solid fa-magnifying-glass-location"></i> Zoomer</button></h3>
+        <div class="kpis" id="rdKpis"></div>
+        <h4>Répartition des classes de vulnérabilité</h4>
+        <div class="bar" id="rdBar"></div>
+        <div class="leg5" id="rdLeg"></div>
+        <h4>Contribution des facteurs à l'indice</h4>
+        <div class="chartbox"><canvas id="chContrib"></canvas></div>
+        <h4>Lecture hydrogéologique</h4>
+        <div id="rdHydro" class="note"></div>
+        <div id="rdSpiBox" style="display:none">
+          <h4>Sécheresses observées — SPI-6 avril-septembre (CHIRPS, 1990-2024)</h4>
+          <div class="kpis" id="rdSpiKpis"></div>
+          <div class="chartbox"><canvas id="chSpi"></canvas></div>
+          <p class="src">Barres : SPI-6 moyen de la région (orange ≤ −1 modéré, rouge ≤ −1,5 sévère, foncé ≤ −2 extrême) ; ligne pointillée : Niger (zone évaluée). Référence climatologique 1981-2024.</p>
+        </div>
+      </div>
+      <div class="sec">
+        <h3>Comparaison des régions</h3>
+        <div class="chartbox tall"><canvas id="chRank"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ========== MODÈLE ========== -->
+    <div class="view" id="v-model">
+      <div class="sec">
+        <h3>Scénarios prédéfinis</h3>
+        <div class="chips" id="presets"></div>
+        <p class="src" id="presetDesc"></p>
+      </div>
+      <div class="sec" id="rainSec" style="display:none">
+        <h3>Aléa pluviométrique (facteur « Pluie »)</h3>
+        <div class="chips" id="rainChips"></div>
+        <p class="src" id="rainDesc"></p>
+      </div>
+      <div class="sec" id="hydroSec" style="display:none">
+        <h3>Sensibilité hydrogéologique (facteur « Hydrogéo »)</h3>
+        <div class="chips" id="hydroChips"></div>
+        <p class="src" id="hydroDesc"></p>
+      </div>
+      <div class="sec">
+        <h3>Pondération des facteurs</h3>
+        <div id="weights"></div>
+        <div class="row"><span class="src">Somme des poids : <b id="wSum">1,00</b> — l'indice est normalisé par la somme, l'échelle reste 0–1.</span></div>
+      </div>
+      <div class="sec">
+        <h3>Mode d'agrégation</h3>
+        <div class="chips">
+          <span class="chip active" data-mode="add">Additif (WIO)</span>
+          <span class="chip" data-mode="mult">Risque = √(Aléa × Exposition)</span>
+        </div>
+        <div class="eq" id="eqBox"></div>
+        <p class="src" id="modeDesc"></p>
+      </div>
+      <div class="sec">
+        <h3>Distribution nationale de l'indice</h3>
+        <div class="chartbox"><canvas id="chHist"></canvas></div>
+      </div>
+      <div class="sec">
+        <h3>Écart par rapport au modèle de référence</h3>
+        <p class="src">La couche « Écart vs référence » (onglet Couches) cartographie <code>IVS(scénario) − IVS(référence)</code> : violet = moins vulnérable que dans le modèle publié, orange = plus vulnérable.</p>
+        <table class="tbl" id="deltaTable"><thead><tr><th>Région</th><th>Référence</th><th>Scénario</th><th>Δ</th><th>Rang</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <!-- ========== MÉTHODE ========== -->
+    <div class="view" id="v-method">
+      <div class="sec">
+        <h3>Objectif</h3>
+        <p>Produire une carte de <b>vulnérabilité à la sécheresse</b> à l'échelle du Niger en combinant un aléa climatique (déficit pluviométrique, stress de la végétation), une sensibilité du milieu (ressources en eau souterraine) et une exposition humaine (densité de population), selon une approche <b>d'analyse spatiale multicritère par superposition pondérée</b> (Weighted Index Overlay, WIO).</p>
+      </div>
+      <div class="sec">
+        <h3>Chaîne de traitement</h3>
+        <ol style="padding-left:18px">
+          <li><b>Harmonisation</b> : toutes les couches sont reprojetées en WGS 84 (EPSG:4326) et rééchantillonnées sur une grille commune de <b>0,05° (≈ 5,5 km)</b> — la résolution native de CHIRPS et des composites MODIS CMG — soit 314 × 236 cellules couvrant l'emprise 0,2°–15,9° E / 11,7°–23,5° N, puis masquées par la frontière nationale (GADM 4.1). Le potentiel hydrogéologique (1 km, UTM 32N) et la population (≈ 1 km) sont agrégés à cette résolution.</li>
+          <li><b>Scoring sémantique</b> : chaque variable est orientée pour que la valeur croissante signifie « plus vulnérable » (ex. NDVI inversé → stress ; pluviométrie inversée → déficit).</li>
+          <li><b>Normalisation min–max</b> sur [0 ; 1] à l'échelle nationale : <code>x' = (x − min) / (max − min)</code>.</li>
+          <li><b>Pondération et fusion</b> : <code>IVS = Σ wᵢ · xᵢ'</code> avec Σ wᵢ = 1. Les poids du modèle de référence ont été retrouvés par régression non négative sur la carte publiée (R² = 1,000, erreur moyenne 0,001), ce qui garantit que la carte affichée reproduit fidèlement le modèle initial.</li>
+          <li><b>Valeurs manquantes</b> : 1 483 cellules (3,7 % du territoire, bordure du masque NDVI et hydrogéologique) n'ont pas de valeur pour un ou deux facteurs ; l'indice y est calculé sur les facteurs disponibles avec des poids renormalisés (comportement vérifié par rapport à la carte initiale, écart moyen 0,002).</li>
+          <li><b>Classification</b> en 5 classes d'intervalles égaux (voir légende) et <b>agrégation zonale</b> par région (moyenne, médiane, P90, part de surface par classe).</li>
+        </ol>
+      </div>
+      <div class="sec">
+        <h3>Facteurs, sources et poids de référence</h3>
+        <table class="tbl wrap">
+          <thead><tr><th>Facteur</th><th>Rôle</th><th>Poids</th><th>Source (données ouvertes)</th></tr></thead>
+          <tbody>
+            <tr><td>Déficit pluviométrique</td><td>Aléa</td><td class="num">0,35</td><td><a href="https://www.chc.ucsb.edu/data/chirps" target="_blank" rel="noopener">CHIRPS v2.0</a> (UCSB/CHC), 0,05°, cumuls 1990-2024 — moyenne climatologique inversée</td></tr>
+            <tr><td>Stress de la végétation</td><td>Aléa / impact</td><td class="num">0,25</td><td><a href="https://lpdaac.usgs.gov/products/mod13c2v061/" target="_blank" rel="noopener">MODIS NDVI</a> (MOD13, Terra, 2000-2024) — NDVI moyen inversé</td></tr>
+            <tr><td>Vulnérabilité hydrogéologique</td><td>Sensibilité</td><td class="num">0,25</td><td><b>1 − classes du GWPI v2</b> : potentiel hydrogéologique AHP-WIO (<a href="https://www.bgs.ac.uk/africagroundwateratlas/" target="_blank" rel="noopener">BGS Africa Groundwater Atlas</a> 35 %, CHIRPS 22 %, pente 17 %, TPI 11 % <a href="https://www.hydrosheds.org" target="_blank" rel="noopener">HydroSHEDS</a>, linéaments 15 %), 1 km, classé en quartiles — voir onglet Hydrogéo et variantes dans Modèle</td></tr>
+            <tr><td>Exposition population</td><td>Exposition</td><td class="num">0,15</td><td><a href="https://www.worldpop.org" target="_blank" rel="noopener">WorldPop</a> (densité ≈ 1 km) — normalisée</td></tr>
+          </tbody>
+        </table>
+        <p class="src">Limites administratives : <a href="https://gadm.org" target="_blank" rel="noopener">GADM 4.1</a>, niveau 1 (régions). Pipeline hydrogéologique : <a href="https://github.com/azioba/hydrogeological-potential-mapping" target="_blank" rel="noopener">azioba/hydrogeological-potential-mapping</a> (MIT). Les couches climatiques sont des <b>moyennes pluriannuelles</b> et non des anomalies : le gradient nord-sud observé (Sahara au maximum du déficit) le confirme — voir Limites.</p>
+      </div>
+      <div class="sec">
+        <h3>Aléa sécheresse par anomalies (option SPI)</h3>
+        <p>Pour répondre à la limite « aridité ≠ sécheresse », une seconde famille de couches d'aléa a été calculée à partir de l'archive <b>CHIRPS mensuelle 1981-2024</b> (même grille 0,05°, sans rééchantillonnage) avec le code SPI du module sécheresse <i>geoai-niger</i> :</p>
+        <ol style="padding-left:18px">
+          <li><b>SPI</b> (McKee et al. 1993) : cumul avril-septembre (SPI-6), juillet-septembre (SPI-3) et année civile (SPI-12), ajustement d'une loi gamma (Thom 1958) mélangée à la fréquence de cumuls nuls, sur la <b>référence 1981-2024</b> (44 ans). Le SPI exprime l'écart à la normale <i>locale</i> en écarts-types : −1 modéré, −1,5 sévère, −2 extrême.</li>
+          <li><b>Agrégation 1990-2024</b> (35 saisons) : fréquence des saisons SPI ≤ −1 et ≤ −1,5, sévérité ordinale moyenne, SPI minimal et année correspondante, tendance linéaire (SPI/décennie).</li>
+          <li><b>Fiabilité</b> : le SPI n'a pas de sens là où il ne pleut presque jamais (gamma ajustée sur quelques millimètres). Les cellules à pluie avril-septembre &lt; 50 mm ou avec plus de 30 % de saisons à cumul nul (Wu et al. 2007 ; Stagge et al. 2015) sont marquées « non évaluées » : 44 % du territoire, essentiellement le Sahara. Dans le modèle, le facteur pluie y est ignoré et les autres poids renormalisés.</li>
+          <li><b>Usage</b> : onglet Modèle → « Aléa pluviométrique » ou scénario « Sécheresse (anomalies SPI) ». Les couches sont consultables dans l'onglet Couches (dont le curseur temporel SPI-6 1990-2024) et la série régionale dans la fiche de chaque région.</li>
+        </ol>
+        <div class="note"><b>Ce que montrent ces couches :</b> tendance à l'humidification de <b>+0,24 SPI/décennie</b> (médiane), signature du « reverdissement » sahélien post-1985 ; saisons les plus sèches <b>1990, 1993, 1995-97, 2009, 2011</b> (crises alimentaires 2010 et 2012) ; 2024 saison la plus humide de la série (inondations). Les fréquences sont modestes (≈ 5 % des saisons ≤ −1 en moyenne) parce que la référence 1981-2024 inclut la grande sécheresse des années 1980 : c'est un choix de normale longue conforme à l'OMM, à garder en tête pour l'interprétation.</div>
+      </div>
+      <div class="sec">
+        <h3>Justification des poids</h3>
+        <p>Le déficit pluviométrique reçoit le poids le plus élevé car il est le <b>moteur primaire</b> de la sécheresse météorologique au Sahel ; le stress NDVI en est la <b>réponse agro-écologique</b> (sécheresse agricole) ; la couche hydrogéologique traduit la <b>capacité tampon</b> du milieu (sécheresse hydrologique : des aquifères accessibles et renouvelés atténuent l'impact) ; la population convertit l'aléa en <b>enjeu</b>. Ce choix privilégie l'aléa physique (0,85) sur l'enjeu humain (0,15) : l'onglet <b>Modèle</b> permet de tester d'autres hypothèses et le scénario « Risque » applique une logique multiplicative conforme au cadre <i>Risque = Aléa × Vulnérabilité × Exposition</i> (UNDRR / IPCC).</p>
+      </div>
+      <div class="sec">
+        <h3>Validation interne</h3>
+        <ul>
+          <li>Corrélation de chaque facteur avec l'IVS de référence : déficit CHIRPS <b>r = +0,74</b>, hydrogéologie <b>r = +0,73</b>, stress NDVI <b>r = +0,61</b>, population <b>r = −0,47</b>.</li>
+          <li>La corrélation <b>négative</b> de la population signale que l'aléa climatique et l'enjeu humain sont spatialement opposés (nord aride peu peuplé / sud humide densément peuplé) : le modèle additif de référence classe donc en tête des régions quasi inhabitées. C'est une limite structurelle discutée dans l'onglet Limites.</li>
+          <li>Les statistiques régionales recalculées à partir des grilles reproduisent celles de la carte initiale à ± 0,001.</li>
+          <li>La couche hydrogéologique a été confrontée aux produits intermédiaires du pipeline AHP (1 km) : elle reproduit <code>1 − (classes_v2 − 1)/3</code> moyennée à 0,05° avec r = −0,999 (erreur moyenne 0,008) — modèle v2 à 5 critères, classification par quartiles. Les poids v2 ont été retrouvés par régression (R² = 1,000). Les variantes continues (avec / sans pluie) sont dérivées de ces mêmes couches 1 km.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ========== HYDROGÉO ========== -->
+    <div class="view" id="v-hydro">
+      <div class="sec">
+        <h3>Cadre hydrogéologique du Niger</h3>
+        <p>Le territoire se partage entre <b>trois grands bassins sédimentaires</b> et des <b>zones de socle</b>. La capacité d'un territoire à amortir une sécheresse dépend avant tout de l'accessibilité, de la productivité et du renouvellement de ses aquifères — c'est ce que la couche « vulnérabilité hydrogéologique » cherche à synthétiser (valeur élevée = ressource peu accessible, peu productive ou non renouvelée).</p>
+        <h4>Construction de la couche publiée : 1 − classes du GWPI v2</h4>
+        <p>La couche dérive du <b>Groundwater Potential Index v2</b> du pipeline AHP-WIO <i>hydrogeological-potential-mapping</i> (1 km, UTM 32N). Les poids ci-dessous ont été retrouvés par régression non négative sur <code>score_composite_v2.tif</code> (R² = 1,000) :</p>
+        <table class="tbl wrap">
+          <thead><tr><th>Critère</th><th>Poids v2</th><th>Sans pluie</th><th>Donnée</th><th>Orientation</th></tr></thead>
+          <tbody>
+            <tr><td>Géologie / aquifère</td><td class="num">35 %</td><td class="num">45 %</td><td>BGS Africa Groundwater Atlas (champ <code>NigHGComb</code>)</td><td>score 0–4 (ci-dessous)</td></tr>
+            <tr><td>Pluviométrie</td><td class="num">22 %</td><td class="num">—</td><td>CHIRPS annuel, moyenne pluriannuelle</td><td>plus de pluie = plus de recharge</td></tr>
+            <tr><td>Pente</td><td class="num">17 %</td><td class="num">22 %</td><td>MNT HydroSHEDS/SRTM</td><td>inversée (plat = infiltration)</td></tr>
+            <tr><td>TPI (position topographique)</td><td class="num">11 %</td><td class="num">14 %</td><td>MNT, voisinage 15 km</td><td>inversé (dépressions = accumulation)</td></tr>
+            <tr><td>Densité de linéaments</td><td class="num">15 %</td><td class="num">19 %</td><td>Failles GEM + gradients du MNT</td><td>plus de fractures = plus de perméabilité</td></tr>
+          </tbody>
+        </table>
+        <p class="src" style="margin-top:6px">Scores BGS : grès consolidés fracturés à productivité moyenne-haute (CSIF-M/H) = 4 ; sédimentaire intergranulaire consolidé (CSI-M/H) = 3 ; alluvions / non consolidé (U-M/H) = 3 ; sédimentaire à faible-moyenne productivité (I-L/M) = 2 ; socle cristallin (B-L) = 1.</p>
+        <div class="note warn"><b>Deux points d'attention, désormais corrigeables dans l'onglet Modèle :</b><br>
+        1. <b>Classification par quartiles.</b> La couche publiée n'est pas le score continu mais le complément de ses 4 classes par quartiles (seuils 0,51 / 0,54 / 0,60), moyennées à 0,05° (r = −0,999 vérifié). Des écarts de score de quelques centièmes deviennent des paliers 0 / 0,33 / 0,67 / 1 : Dosso tombe à 0,03 alors que son score continu vaut 0,24. Avec la classification <b>Fisher-Jenks</b> prévue par le pipeline (seuils 0,46 / 0,56 / 0,64 ; 6 / 51 / 29 / 13 % du territoire), la fidélité au score passe de r = 0,89 à 0,96 — variante <b>« Hydro Jenks »</b>. Pour le modèle, la variante <b>« Hydro continu »</b> reste préférable : toute classification perd de l'information et l'équidistance des valeurs de classe est arbitraire.<br>
+        2. <b>Double comptage de la pluie.</b> CHIRPS entre dans le GWPI (22 %) <i>et</i> dans l'IVS (0,35) : poids effectif ≈ 0,35 + 0,25 × 0,22 ≈ <b>0,405</b>. La variante <b>« Hydro s/ pluie »</b> recompose le score sans ce critère (poids renormalisés) : la vulnérabilité devient strictement structurelle — Tillabéry (socle du Liptako) passe en tête (0,50), Agadez redescend à 0,37.</div>
+        <div class="row"><label><input type="checkbox" id="ovAquifers2"> Afficher les unités sur la carte</label></div>
+      </div>
+      <div class="sec" id="aqList"></div>
+      <div class="sec">
+        <h3>Lecture de la couche hydrogéologique par région</h3>
+        <table class="tbl wrap"><thead><tr><th>Région</th><th>Vuln. hydro</th><th>Système dominant</th></tr></thead><tbody id="hydroTable"></tbody></table>
+        <p class="src">Valeur moyenne régionale de la couche normalisée (0 = ressource favorable, 1 = très défavorable).</p>
+      </div>
+      <div class="sec">
+        <h3>Recommandations opérationnelles</h3>
+        <ul>
+          <li><b>Zones de socle (Liptako, Damagaram-Mounio, sud Maradi)</b> : taux élevé de forages négatifs ; prioriser l'implantation par géophysique (ERT, EM) sur les couloirs de fracturation et les altérites épaisses ; privilégier les ouvrages à faible débit mais nombreux.</li>
+          <li><b>Continental Terminal (Dosso, Niamey, sud Tahoua, ouest Maradi)</b> : nappe libre peu profonde, bonne réponse à la recharge par les mares et dallols ; développer la petite irrigation raisonnée et la recharge artificielle (seuils, mares aménagées) tout en surveillant la qualité (nitrates).</li>
+          <li><b>Continental Intercalaire / Hamadien (Tahoua nord, Agadez sud)</b> : eau en grande partie fossile et artésienne ; ressource stratégique pour le pastoralisme (stations de pompage pastorales) mais à exploiter avec un suivi piézométrique strict — elle ne se reconstitue pas à l'échelle humaine.</li>
+          <li><b>Bassin du Tchad (Diffa, est Zinder)</b> : nappe phréatique dépendante de la Komadougou Yobé et des cuvettes ; forte sensibilité aux séquences sèches et à la salinisation ; privilégier le Pliocène captif pour l'AEP et la nappe phréatique pour les usages agricoles contrôlés.</li>
+          <li><b>Aïr, Kaouar, Ténéré</b> : ressources ponctuelles (koris, oasis) ; sécuriser les points d'eau existants et le pastoralisme transhumant plutôt que d'étendre les prélèvements.</li>
+          <li><b>Pour toutes les régions</b> : coupler l'indice à un <b>suivi piézométrique</b> et aux données de <b>disponibilité des points d'eau</b> (SIGNER / PROSEHA) pour passer d'une vulnérabilité structurelle à un suivi conjoncturel.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ========== LIMITES ========== -->
+    <div class="view" id="v-limits">
+      <div class="sec">
+        <h3>Limites du modèle</h3>
+        <div class="note danger"><b>Aridité ≠ sécheresse.</b> Dans le modèle de référence, les couches climatiques normalisées à l'échelle nationale mesurent surtout le gradient structurel nord-sud (Sahara → Sahel). Agadez ressort comme la région « la plus vulnérable » alors que son peuplement est marginal : l'indice y décrit l'aridité chronique, non une anomalie par rapport à la normale. L'option <b>« Aléa pluviométrique → SPI »</b> (onglet Modèle) corrige ce point pour la pluie ; le stress NDVI reste une moyenne et devrait à son tour devenir un VCI ou une anomalie.</div>
+        <ul>
+          <li><b>Limites propres au SPI</b> : CHIRPS est peu contraint par les stations au Niger (réseau clairsemé, surtout au nord) ; la référence 1981-2024 lisse les fréquences ; les cumuls saisonniers ne voient pas les ruptures intra-saisonnières (faux départs, pauses d'août) qui font les mauvaises récoltes ; le SPI ignore l'évapotranspiration (préférer le SPEI quand une ET fiable est disponible).</li>
+        </ul>
+        <ul>
+          <li><b>Résolution</b> : 0,05° (≈ 5,5 km). Les valeurs ne sont pas interprétables à l'échelle d'une commune ou d'un village ; le rendu « pixelisé » rappelle cette limite.</li>
+          <li><b>Normalisation min–max</b> : sensible aux valeurs extrêmes (un seul pixel à 1,000 fixe l'échelle) ; les maxima régionaux à 1,000 (Dosso, Tahoua) relèvent probablement de cet effet de bord.</li>
+          <li><b>Compensation</b> : dans un modèle additif, un très bon score sur un facteur compense un très mauvais sur un autre. Le mode multiplicatif (onglet Modèle) limite cet effet.</li>
+          <li><b>Poids subjectifs</b> : aucune pondération objective (AHP, entropie, ACP) n'est documentée ; l'outil permet d'en tester la sensibilité.</li>
+          <li><b>Double comptage de la pluie</b> : CHIRPS intervient directement (0,35) et dans le potentiel hydrogéologique (22 % du GWPI v2) ; poids effectif ≈ 0,405, ce qui renforce le gradient d'aridité. Corrigé par la variante « Hydro s/ pluie » (onglet Modèle).</li>
+          <li><b>Paliers de quartiles</b> : la couche hydro publiée est une carte en 4 classes (25 % du territoire chacune, par construction) et non un score continu ; elle force un quart du pays en « très vulnérable » quel que soit le contraste réel, et écrase les nuances au sein du Continental Terminal ou du bassin du Tchad. Corrigé par les variantes continues.</li>
+          <li><b>Périodes hétérogènes</b> : CHIRPS couvre 1990-2024 mais MODIS n'existe que depuis 2000 ; le NDVI décrit donc 2000-2024. La population WorldPop est une photographie récente (millésime à préciser) appliquée à une climatologie de 35 ans.</li>
+          <li><b>Hydrogéologie</b> : la couche synthétise une vulnérabilité structurelle (type d'aquifère BGS, recharge, topographie) sans intégrer l'état réel des nappes (piézométrie, taux de fonctionnalité des ouvrages). Le pipeline GWPI n'a pas encore été validé par courbe ROC sur des forages réels : l'échantillon WPDx disponible (1 000 points, statut inconnu pour 62 %) est insuffisant.</li>
+          <li><b>Absence de validation externe</b> : l'indice n'a pas été confronté aux impacts observés (phases Cadre Harmonisé, pertes de récoltes, mortalité du cheptel, déplacements). C'est l'étape prioritaire avant tout usage décisionnel.</li>
+          <li><b>Temporalité</b> : la période 1990-2024 est agrégée en une seule image ; la dynamique (tendances, années de crise 2005, 2010, 2012, 2021) n'est pas représentée.</li>
+        </ul>
+      </div>
+      <div class="sec">
+        <h3>Améliorations recommandées</h3>
+        <ul>
+          <li><s>Remplacer le déficit brut par la fréquence de saisons SPI ≤ −1</s> — <b>fait</b> (option « Aléa pluviométrique », couches SPI). Étape suivante : remplacer le NDVI moyen par le <b>VCI</b> ou l'anomalie standardisée MODIS 2000-2024 (le cache MODIS local ne couvre que 2019-2024 : extension à programmer).</li>
+          <li><s>Recalculer le GWPI sans le critère pluie</s> — <b>fait</b> (variantes « Hydro continu » et « Hydro s/ pluie », scénario « Modèle révisé »). <s>Quartiles → Jenks pour la carte de potentiel</s> — <b>fait</b> : le notebook racine du pipeline classe désormais en Fisher-Jenks via <code>classify_potential</code>, le repli silencieux vers les quantiles émet un avertissement, et <code>data/derived/gwpi_v2_classes_jenks.tif</code> fournit la carte reclassée (1 km).</li>
+          <li>Intégrer l'<b>évapotranspiration</b> (MODIS ET / ERA5), les <b>anomalies de stock d'eau GRACE</b>, et les données <b>FEWS NET / Cadre Harmonisé</b> pour la validation.</li>
+          <li>Ajouter des facteurs de <b>capacité d'adaptation</b> (accès à l'eau potable, cheptel, irrigation, marchés, routes) pour passer d'un indice d'aléa-exposition à un indice de vulnérabilité au sens IPCC.</li>
+          <li>Déterminer les poids par <b>AHP</b> avec un panel d'experts (hydrologues, agronomes, protection civile) et publier la matrice de cohérence.</li>
+          <li>Produire l'indice <b>par année ou par saison</b> pour un suivi conjoncturel, et à l'échelle départementale (GADM niveau 2).</li>
+        </ul>
+      </div>
+      <div class="sec">
+        <h3>Crédits</h3>
+        <p class="src">Données : CHIRPS v2.0 (Funk et al. 2015, UCSB/CHC), MODIS MOD13 NDVI (NASA LP DAAC), BGS Africa Groundwater Atlas (MacDonald et al.), HydroSHEDS/SRTM, WorldPop, GADM 4.1 — toutes en accès libre. Fonds de carte : Esri (World Imagery, Light/Dark Gray Canvas), © OpenStreetMap contributors, OpenTopoMap. Bibliothèques : Leaflet 1.9.4, Chart.js 4.4.1, Font Awesome 6. Carte initiale produite avec Folium ; version interactive et notice méthodologique recomposées à partir des grilles embarquées. Méthode : Saaty (1980) ; Andualem &amp; Demeke (2020) ; Hussein et al. (2021).</p>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div id="map">
+  <button class="btn sm" id="panelToggle"><i class="fa-solid fa-bars"></i> Panneau</button>
+  <div id="cmplabels"><span id="cmpL"></span><span id="cmpR"></span></div>
+  <div id="cmpbar"></div>
+  <div class="widget" id="legend"></div>
+  <div class="widget" id="inspector"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+const DATA = /*__DATA__*/{};
+const LUT = /*__LUTS__*/{};
+const DROUGHT = /*__DROUGHT__*/{};
+const HYDROV = /*__HYDRO__*/{};
+</script>
+<script>
+/* =====================================================================
+   Niger IVS — moteur de carte
+   ===================================================================== */
+(async function(){
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const fmt = (v, d=3) => v == null || isNaN(v) ? '—' : v.toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});
+const pct = v => v == null ? '—' : v.toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' %';
+const toast = m => { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(()=> t.style.display='none', 2600); };
+
+/* ---------- constantes ---------- */
+const W = DATA.size[0], H = DATA.size[1], N = W*H;
+const B = DATA.bounds; // [[S,W],[N,E]]
+const S = B[0][0], Wlon = B[0][1], Nlat = B[1][0], E = B[1][1];
+const FACTORS = [
+  {k:'chirps', name:'Déficit pluviométrique', short:'Pluie', sub:'CHIRPS 1990-2024', lut:'chirps', icon:'fa-cloud-rain', group:'hazard'},
+  {k:'ndvi',   name:'Stress de la végétation', short:'NDVI', sub:'NDVI inversé', lut:'ndvi', icon:'fa-seedling', group:'hazard'},
+  {k:'hydro',  name:'Vulnérabilité hydrogéologique', short:'Hydrogéo', sub:'ressource souterraine', lut:'hydro', icon:'fa-droplet', group:'hazard'},
+  {k:'pop',    name:'Exposition de la population', short:'Population', sub:'densité normalisée', lut:'pop', icon:'fa-people-group', group:'exposure'},
+];
+const REF_W = {chirps:0.35, ndvi:0.25, hydro:0.25, pop:0.15};
+const CLASSES = [
+  {lo:0, hi:.2, name:'Faible', col:'#2c7bb6'},
+  {lo:.2, hi:.4, name:'Modérée', col:'#abd9e9'},
+  {lo:.4, hi:.6, name:'Élevée', col:'#ffffbf'},
+  {lo:.6, hi:.8, name:'Très élevée', col:'#fdae61'},
+  {lo:.8, hi:1.01, name:'Extrême', col:'#d7191c'},
+];
+const PRESETS = [
+  {id:'ref', name:'Référence (publié)', w:REF_W, mode:'add', desc:'Modèle de la carte initiale : 0,35 / 0,25 / 0,25 / 0,15, agrégation additive.'},
+  {id:'nodouble', name:'Pluie corrigée', w:{chirps:0.295, ndvi:0.25, hydro:0.25, pop:0.15}, mode:'add', desc:'Même modèle, mais le poids de la pluie est réduit de la part qu\'elle occupe déjà dans le GWPI v2 (0,25 × 0,22) : le double comptage est neutralisé approximativement (somme renormalisée). La variante « Hydro s/ pluie » le supprime exactement.'},
+  {id:'risk', name:'Risque humain', w:{chirps:0.4, ndvi:0.3, hydro:0.3, pop:1}, mode:'mult', desc:'Aléa composite (pluie, NDVI, hydrogéo) croisé multiplicativement avec l\'exposition : les zones inhabitées tendent vers 0.'},
+  {id:'human', name:'Priorité humanitaire', w:{chirps:0.25, ndvi:0.2, hydro:0.2, pop:0.35}, mode:'add', desc:'L\'enjeu humain devient le premier facteur ; utile pour cibler l\'assistance.'},
+  {id:'hydro', name:'Focus eau souterraine', w:{chirps:0.2, ndvi:0.1, hydro:0.5, pop:0.2}, mode:'add', desc:'Priorise la sensibilité hydrogéologique : pertinent pour la planification des ouvrages d\'hydraulique.'},
+  {id:'agri', name:'Sécheresse agricole', w:{chirps:0.35, ndvi:0.45, hydro:0.05, pop:0.15}, mode:'add', desc:'Met l\'accent sur la réponse de la végétation (cultures pluviales et pâturages).'},
+  {id:'equal', name:'Poids égaux', w:{chirps:0.25, ndvi:0.25, hydro:0.25, pop:0.25}, mode:'add', desc:'Hypothèse neutre, utile comme test de sensibilité.'},
+];
+if (DROUGHT.grids) PRESETS.splice(1, 0,
+  {id:'anom', name:'Sécheresse (anomalies SPI)', w:REF_W, mode:'add', rain:'freq6', desc:'Poids de référence, mais le facteur pluie devient la fréquence de saisons SPI-6 ≤ −1 (1990-2024, réf. 1981-2024) : l\'aléa mesure la sécheresse par rapport à la normale locale, non l\'aridité. Non évalué dans le nord hyper-aride (poids renormalisés).'},
+  {id:'anomrisk', name:'Risque sécheresse × population', w:{chirps:0.4, ndvi:0.3, hydro:0.3, pop:1}, mode:'mult', rain:'sev6', desc:'Sévérité SPI-6 comme aléa pluviométrique, croisée multiplicativement avec l\'exposition : les zones peuplées fréquemment touchées ressortent.'});
+if (DROUGHT.grids && HYDROV.grids) PRESETS.splice(1, 0,
+  {id:'revised', name:'Modèle révisé', w:REF_W, mode:'add', rain:'freq6', hydro:'norain', desc:'Poids de référence avec les deux corrections : aléa pluie = fréquence SPI-6 ≤ −1 (anomalies, pas aridité) et sensibilité hydrogéologique continue sans pluie (plus de double comptage ni de paliers de quartiles). C\'est la version recommandée pour la discussion.'});
+if (HYDROV.grids) PRESETS.push(
+  {id:'hydrocont', name:'Hydro continue', w:REF_W, mode:'add', hydro:'cont', desc:'Référence, mais la couche hydrogéologique continue remplace les 4 paliers de quartiles : montre l\'effet de la seule classification.'},
+  {id:'hydrojenks', name:'Hydro Jenks', w:REF_W, mode:'add', hydro:'jenks', desc:'Référence, mais la couche hydrogéologique est classée par seuils naturels Fisher-Jenks (médianes de classe) au lieu des quartiles : ce que donnerait la carte publiée avec la classification prévue par le pipeline.'});
+const CITIES = [
+  ['Niamey',13.512,2.112],['Dosso',13.049,3.194],['Tillabéri',14.212,1.453],['Tahoua',14.889,5.264],
+  ['Maradi',13.500,7.102],['Zinder',13.805,8.988],['Diffa',13.315,12.611],['Agadez',16.973,7.991],
+];
+const AQUIFERS = [
+  {n:'Socle du Liptako-Gourma', ll:[14.05,1.05], type:'Socle cristallin (Birimien)', txt:'Aquifères de fissures et d\'altérites, discontinus. Débits faibles (1–5 m³/h), taux de forages négatifs élevé, niveaux 15–40 m. Recharge directe faible, dépendante des fractures ouvertes et des épaisseurs d\'altération.'},
+  {n:'Continental Terminal — Dallols', ll:[13.35,3.45], type:'Bassin des Iullemmeden (Tertiaire)', txt:'CT3 : nappe libre peu profonde (5–40 m), rechargée par les mares endoréiques et les dallols (Bosso, Maouri, Foga). Remontée de nappe documentée depuis les années 1960-80 (« paradoxe sahélien »). Ressource productive et renouvelée, vulnérable à la pollution.'},
+  {n:'Vallée du fleuve Niger', ll:[13.6,2.0], type:'Alluvions + CT3', txt:'Nappe alluviale soutenue par le fleuve, en continuité avec le CT3. Forte pression urbaine (Niamey) : enjeu de qualité plus que de quantité.'},
+  {n:'Ader-Doutchi-Majia', ll:[14.65,5.35], type:'CT / dépôts de plateaux', txt:'Nappes des vallées (Majia, Tarka) et nappes perchées sous plateaux cuirassés ; recharge par les mares. Zone de transition vers le CI/CH artésien au nord.'},
+  {n:'Continental Intercalaire / Hamadien', ll:[16.4,6.4], type:'Bassin des Iullemmeden (Crétacé inf.)', txt:'Aquifère multicouche profond (200–800 m), artésien dans l\'Irhazer–Tegama (In Gall, Tahoua nord). Eau largement fossile : recharge quasi nulle, exploitation = déstockage. Ressource stratégique pour l\'hydraulique pastorale.'},
+  {n:'Goulbi de Maradi / socle sud', ll:[13.45,7.3], type:'Alluvions + CT + socle', txt:'Nappes alluviales des goulbis (Maradi, Kaba) rechargées par les crues venant du Nigéria ; CT à l\'ouest, socle précambrien au sud-est. Exploitation agricole intensive, baisse locale des niveaux.'},
+  {n:'Damagaram-Mounio / Korama', ll:[13.75,9.1], type:'Socle précambrien + alluvions', txt:'Socle granitique à faible productivité (fissures, altérites) ; nappe alluviale de la Korama plus productive. Forte densité de population : pression importante sur une ressource limitée.'},
+  {n:'Bassin du Tchad — Manga / Kadzell', ll:[14.1,12.8], type:'Quaternaire + Pliocène captif', txt:'Nappe phréatique quaternaire (10–60 m) rechargée par la Komadougou Yobé et les cuvettes oasiennes ; nappe pliocène captive (200–400 m) plus sûre pour l\'AEP. Sensibilité forte aux séquences sèches, salinisation locale.'},
+  {n:'Massif de l\'Aïr', ll:[18.2,8.6], type:'Socle cristallin et volcanique', txt:'Nappes alluviales des koris (Teloua, Anou Makaren) et aquifères de fissures. Ressource ponctuelle, entièrement dépendante des crues ; gisements d\'eau des vallées exploités pour Agadez et Arlit.'},
+  {n:'Ténéré / Tafassasset', ll:[19.6,11.3], type:'Grès du CI sous ergs', txt:'Nappes profondes à très profondes, non renouvelées, sans exploitation hors des axes. Vulnérabilité hydrogéologique maximale mais enjeu humain marginal.'},
+  {n:'Kaouar — Djado (Bilma, Fachi)', ll:[18.7,12.9], type:'Grès paléozoïques / CI', txt:'Oasis sur nappes artésiennes ou sub-affleurantes ; salinisation des palmeraies et des sols. Points d\'eau vitaux pour les caravanes et le pastoralisme.'},
+];
+const REGION_HYDRO = {
+  'Agadez':'Massif de l\'Aïr (socle) et Ténéré (CI profond fossile). Ressource ponctuelle (koris, oasis du Kaouar) ; forte vulnérabilité structurelle mais peuplement concentré sur quelques axes. Priorité : sécuriser les points d\'eau existants, suivi des nappes alluviales de l\'Aïr.',
+  'Diffa':'Bassin du Tchad : nappe phréatique quaternaire dépendante de la Komadougou Yobé et du lac, Pliocène captif plus profond. Vulnérabilité hydro la plus élevée du sud : sensibilité aux séquences sèches, salinisation. Priorité : Pliocène pour l\'AEP, surveillance piézométrique de la phréatique.',
+  'Dosso':'Continental Terminal (CT3) libre et productif, dallols, vallée du Niger. Vulnérabilité hydrogéologique la plus faible du pays : l\'IVS y est tiré par le déficit pluviométrique et surtout l\'exposition humaine. Priorité : valoriser la nappe pour la petite irrigation et la sécurisation alimentaire.',
+  'Maradi':'Goulbis alluviaux au nord, CT à l\'ouest, socle au sud-est. Ressource globalement favorable (vuln. hydro 0,17) mais sous forte pression agricole et démographique. Priorité : gestion des prélèvements et recharge des goulbis.',
+  'Niamey':'Alluvions du fleuve et CT3 ; ressource abondante mais vulnérable à la pollution urbaine. La vulnérabilité élevée de la région tient à l\'exposition humaine (0,99) et au stress NDVI de l\'espace urbanisé, non à la ressource en eau.',
+  'Tahoua':'CT et Ader-Doutchi-Majia au sud (nappes de vallées), CI/CH artésien au nord (Tegama). Dualité : sud renouvelable mais sollicité, nord fossile mais stratégique pour le pastoralisme. Priorité : suivi des stations de pompage pastorales, seuils de recharge au sud.',
+  'Tillabéry':'Socle du Liptako-Gourma à l\'ouest (fissures, faible productivité, forages négatifs fréquents), CT à l\'est, vallée du Niger. Vulnérabilité hydro intermédiaire (0,39) masquant un fort contraste ouest/est. Priorité : implantation géophysique des forages en zone de socle.',
+  'Zinder':'Socle du Damagaram-Mounio au centre, Korama alluviale, bassin du Tchad à l\'est, CI au nord. Ressource limitée face à une forte densité : la vulnérabilité hydro (0,43) est le second facteur de l\'IVS après la pluie. Priorité : densification raisonnée des ouvrages sur fractures et alluvions.',
+};
+
+/* ---------- chargement des grilles ---------- */
+function loadGrid(url){
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const g = c.getContext('2d', {willReadFrequently:true}); g.drawImage(im, 0, 0);
+      const d = g.getImageData(0, 0, W, H).data;
+      const out = new Uint8Array(N); for (let i=0;i<N;i++) out[i] = d[i*4];
+      res(out);
+    };
+    im.onerror = rej; im.src = url;
+  });
+}
+const grids = {};
+for (const k of ['ivs','chirps','ndvi','hydro','pop','region']) grids[k] = await loadGrid(DATA.grids[k]);
+const valid = new Uint8Array(N); for (let i=0;i<N;i++) valid[i] = grids.ivs[i] !== 255 ? 1 : 0;
+const F = {}; for (const f of FACTORS){ const a = new Float32Array(N); for (let i=0;i<N;i++) a[i] = grids[f.k][i] === 255 ? NaN : grids[f.k][i]/254; F[f.k] = a; }
+const REF = new Float32Array(N); for (let i=0;i<N;i++) REF[i] = valid[i] ? grids.ivs[i]/254 : NaN;
+const REGION_NAMES = DATA.region_names;
+
+/* ---------- aléa sécheresse par anomalies (SPI, CHIRPS 1981-2024) ---------- */
+const HAS_DROUGHT = !!(DROUGHT.grids);
+const D = {}, SPI6 = {}, YEARS = HAS_DROUGHT ? DROUGHT.series.years : [];
+async function loadDrought(){
+  const dec = (g, lo, hi) => { const a = new Float32Array(N); for (let i=0;i<N;i++) a[i] = g[i] === 255 ? NaN : lo + g[i]/254*(hi-lo); return a; };
+  for (const k of ['freq6','freqsev6','sev6','freq3','freq12','trend6','worst6','min6','pmean6']){
+    const [lo, hi] = DROUGHT.ranges[k]; D[k] = dec(await loadGrid(DROUGHT.grids[k]), lo, hi);
+  }
+  for (const y of YEARS) SPI6[y] = dec(await loadGrid(DROUGHT.grids['spi6_'+y]), -3, 3);
+}
+if (HAS_DROUGHT) await loadDrought();
+function minmax(a){ let lo=Infinity, hi=-Infinity; for (let i=0;i<N;i++){ const v=a[i]; if (!isNaN(v)){ if(v<lo)lo=v; if(v>hi)hi=v; } } const o = new Float32Array(N); for (let i=0;i<N;i++) o[i] = isNaN(a[i]) ? NaN : (a[i]-lo)/(hi-lo); return o; }
+// variantes de l'aléa pluviométrique (facteur « chirps » du modèle)
+const RAIN = { clim:{name:'Déficit pluviométrique (moyenne 1990-2024)', short:'Pluie', sub:'CHIRPS, moyenne inversée', src:F.chirps,
+  desc:'Couche de la carte initiale : cumul moyen 1990-2024 normalisé et inversé. Décrit le gradient d\'aridité nord-sud.'} };
+if (HAS_DROUGHT){
+  RAIN.freq6 = {name:'Fréquence de saisons sèches (SPI-6 ≤ −1)', short:'Fréq. SPI-6', sub:'anomalies CHIRPS 1990-2024', src:minmax(D.freq6),
+    desc:'Part des saisons avril-septembre 1990-2024 en déficit modéré ou pire (SPI-6 ≤ −1, réf. 1981-2024), normalisée 0–1. Non évalué (facteur ignoré, poids renormalisés) là où la pluie est < 50 mm/saison.'};
+  RAIN.sev6 = {name:'Sévérité moyenne des sécheresses (SPI-6)', short:'Sévérité SPI-6', sub:'0 = jamais, 1 = extrême chaque année', src:minmax(D.sev6),
+    desc:'Moyenne 1990-2024 de la sévérité ordinale McKee (0 normal … 3 extrême) du SPI-6, normalisée 0–1. Pondère la fréquence par l\'intensité.'};
+  RAIN.freq3 = {name:'Fréquence de saisons sèches (SPI-3 JAS)', short:'Fréq. SPI-3', sub:'cœur de l\'hivernage', src:minmax(D.freq3),
+    desc:'Comme la fréquence SPI-6 mais sur juillet-septembre : plus sensible aux ruptures en cœur de saison (sécheresse agricole).'};
+}
+/* ---------- variantes de la sensibilité hydrogéologique ---------- */
+const HAS_HYDRO = !!(HYDROV.grids);
+const HYDRO = { pub:{name:'Vulnérabilité hydrogéologique (publiée)', short:'Hydrogéo', sub:'1 − classes quartiles du GWPI v2', src:F.hydro,
+  desc:'Couche de la carte initiale : complément des 4 classes par quartiles du potentiel hydrogéologique v2 (géologie BGS 35 %, pluie 22 %, pente 17 %, TPI 11 %, linéaments 15 %), moyennées à 0,05°. Les quartiles transforment de faibles écarts de score (seuils 0,51 / 0,54 / 0,60) en paliers 0 / 0,33 / 0,67 / 1.'} };
+if (HAS_HYDRO){
+  const dec8 = g => { const a = new Float32Array(N); for (let i=0;i<N;i++) a[i] = g[i]===255 ? NaN : g[i]/254; return a; };
+  HYDRO.cont = {name:'Vulnérabilité hydrogéologique continue (avec pluie)', short:'Hydro continu', sub:'1 − score GWPI v2 normalisé', src:dec8(await loadGrid(HYDROV.grids.cont)),
+    desc:'Même modèle v2 (5 critères, mêmes poids) mais le score continu est conservé puis normalisé min-max et inversé : plus de paliers artificiels. La pluie y compte encore pour 22 %.'};
+  HYDRO.norain = {name:'Vulnérabilité hydrogéologique structurelle (sans pluie)', short:'Hydro s/ pluie', sub:'géologie 45 %, pente 22 %, TPI 14 %, linéaments 19 %', src:dec8(await loadGrid(HYDROV.grids.norain)),
+    desc:'Score v2 recomposé sans le critère pluie (poids renormalisés) : la couche ne décrit plus que l\'aquifère, le relief et la fracturation. Supprime le double comptage de CHIRPS dans l\'IVS.'};
+  if (HYDROV.grids.jenks){ const j = HYDROV.jenks; HYDRO.jenks = {name:'Vulnérabilité hydrogéologique classée Fisher-Jenks (médianes)', short:'Hydro Jenks', sub:`4 classes · ${j.areas_pct.join(' / ')} % du territoire`, src:dec8(await loadGrid(HYDROV.grids.jenks)),
+    desc:`Même score v2 (avec pluie) classé en 4 classes par seuils naturels Fisher-Jenks (${j.thresholds.map(t=>fmt(t,3)).join(' / ')}) au lieu des quartiles ; chaque classe reçoit la médiane de son intervalle de score, puis normalisation et inversion. Montre ce que donnerait la carte de potentiel publiée avec la classification prévue par le pipeline.`}; }
+}
+
+/* ---------- état ---------- */
+const state = { w:{...REF_W}, mode:'add', rain:'clim', hydro:'pub', year:YEARS.length ? YEARS[YEARS.length-1] : 2024, layer:'ivs', opacity:.8, smooth:false, compare:false, inspect:false, cmpL:'ivs', cmpR:'chirps', selRegion:null, sortK:'ivs_mean', basemap:'positron' };
+function applyRain(){
+  const r = RAIN[state.rain] || RAIN.clim; F.chirps = r.src; FACTORS[0].name = r.name; FACTORS[0].short = r.short; FACTORS[0].sub = r.sub;
+  const h = HYDRO[state.hydro] || HYDRO.pub; F.hydro = h.src; FACTORS[2].name = h.name; FACTORS[2].short = h.short; FACTORS[2].sub = h.sub;
+  computeRegStatic();
+}
+
+// moyennes régionales statiques des facteurs (recalculées quand l'aléa pluviométrique change)
+let regStatic = [];
+function computeRegStatic(){
+  regStatic = REGION_NAMES.map((name, ri) => {
+    const o = {name, n:0, sum:{}, cnt:{}}; for (const f of FACTORS){ o.sum[f.k]=0; o.cnt[f.k]=0; }
+    for (let i=0;i<N;i++) if (grids.region[i] === ri+1 && valid[i]) { o.n++; for (const f of FACTORS) if(!isNaN(F[f.k][i])) { o.sum[f.k]+=F[f.k][i]; o.cnt[f.k]++; } }
+    o.mean = {}; for (const f of FACTORS) o.mean[f.k] = o.cnt[f.k] ? o.sum[f.k]/o.cnt[f.k] : 0;
+    const src = DATA.regions.find(r => r.region === name); o.area = src ? src.area_km2 : 0; o.centroid = src ? src.centroid : [15,8];
+    return o;
+  });
+}
+computeRegStatic();
+
+/* ---------- calcul de l'indice ---------- */
+let IVS = new Float32Array(N);
+function compute(){
+  const w = state.w;
+  if (state.mode === 'add'){
+    for (let i=0;i<N;i++){
+      if (!valid[i]) { IVS[i] = NaN; continue; }
+      let s=0, ws=0;
+      // facteur manquant (bord du masque NDVI/hydro) : poids renormalisés sur les facteurs disponibles, comme la carte initiale
+      for (const f of FACTORS){ const v = F[f.k][i]; if (!isNaN(v)) { s += w[f.k]*v; ws += w[f.k]; } }
+      IVS[i] = ws>0 ? s/ws : NaN;
+    }
+  } else {
+    for (let i=0;i<N;i++){
+      if (!valid[i]) { IVS[i] = NaN; continue; }
+      let s=0, ws=0;
+      for (const k of ['chirps','ndvi','hydro']){ const v = F[k][i]; if (!isNaN(v)) { s += w[k]*v; ws += w[k]; } }
+      const h = ws>0 ? s/ws : 0;
+      const e = isNaN(F.pop[i]) ? 0 : F.pop[i];
+      IVS[i] = Math.sqrt(Math.max(0,h)*Math.max(0,e));
+    }
+  }
+}
+function regionStats(){
+  return REGION_NAMES.map((name, ri) => {
+    const vals = []; for (let i=0;i<N;i++) if (grids.region[i]===ri+1 && !isNaN(IVS[i])) vals.push(IVS[i]);
+    vals.sort((a,b)=>a-b); const n = vals.length;
+    const mean = vals.reduce((a,b)=>a+b,0)/n;
+    const q = p => vals[Math.min(n-1, Math.floor(p*n))];
+    const cls = CLASSES.map(c => vals.filter(v => v>=c.lo && v<c.hi).length/n*100);
+    const st = regStatic[ri];
+    let contrib = {};
+    if (state.mode==='add'){ const sw = Object.values(state.w).reduce((a,b)=>a+b,0); for (const f of FACTORS) contrib[f.k] = state.w[f.k]*st.mean[f.k]/sw; }
+    else { const sh = state.w.chirps+state.w.ndvi+state.w.hydro; for (const f of FACTORS) contrib[f.k] = f.k==='pop' ? st.mean.pop*0.5 : 0.5*state.w[f.k]*st.mean[f.k]/sh; }
+    const ct = Object.values(contrib).reduce((a,b)=>a+b,0)||1; for (const k in contrib) contrib[k] /= ct;
+    const driver = Object.keys(contrib).reduce((a,b)=> contrib[a]>=contrib[b]?a:b);
+    return {region:name, ri, n, area:st.area, ivs_mean:mean, ivs_median:q(.5), ivs_p90:q(.9), ivs_max:vals[n-1], ivs_min:vals[0],
+            pct_gt_0_6: vals.filter(v=>v>=.6).length/n*100, pct_gt_0_8: vals.filter(v=>v>=.8).length/n*100, classes:cls, contrib, driver, fmean:st.mean, centroid:st.centroid};
+  });
+}
+function nationalStats(){
+  const vals=[]; for (let i=0;i<N;i++) if(!isNaN(IVS[i])) vals.push(IVS[i]);
+  const n = vals.length, mean = vals.reduce((a,b)=>a+b,0)/n;
+  const hist = new Array(20).fill(0); for (const v of vals) hist[Math.min(19, Math.floor(v*20))]++;
+  return {n, mean, cls: CLASSES.map(c => vals.filter(v=>v>=c.lo&&v<c.hi).length/n*100), hist: hist.map(h=>h/n*100), pct6: vals.filter(v=>v>=.6).length/n*100};
+}
+let REG = [], NAT = null, REFREG = null;
+
+/* ---------- rendu raster ---------- */
+function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function rampLUT(stops){ // interpolation linéaire entre couleurs hex -> 256 entrées
+  const out = []; const cs = stops.map(hex2rgb);
+  for (let i=0;i<256;i++){ const t = i/255*(cs.length-1), j = Math.min(cs.length-2, Math.floor(t)), u = t-j;
+    out.push([0,1,2].map(c => Math.round(cs[j][c]*(1-u)+cs[j+1][c]*u))); }
+  return out;
+}
+LUT.ivs = rampLUT(['#2c7bb6','#abd9e9','#ffffbf','#fdae61','#d7191c']);
+LUT.classes = null;
+const LAYERS = [
+  {k:'ivs', name:'IVS — indice composite', sub:'recalculé avec les poids courants', lut:'ivs', src:()=>IVS, legend:'IVS (0 = faible, 1 = très élevée)'},
+  {k:'classes', name:'IVS — 5 classes', sub:'intervalles égaux de 0,2', lut:'classes', src:()=>IVS, legend:'Classes de vulnérabilité'},
+  {k:'delta', name:'Écart vs référence', sub:'IVS(scénario) − IVS(référence)', lut:'diff', src:()=>{ const d=new Float32Array(N); for(let i=0;i<N;i++) d[i]=isNaN(IVS[i])?NaN:(IVS[i]-REF[i]+0.5); return d; }, legend:'Écart (−0,5 … +0,5)', ticks:['−0,5','0','+0,5']},
+  ...FACTORS.map(f => ({k:f.k, name:f.name, sub:f.sub, lut:f.lut, src:()=>F[f.k], legend:f.name+' (0–1, normalisé)'})),
+];
+if (HAS_DROUGHT) LAYERS.push(
+  {k:'freq6', group:'Aléa sécheresse — anomalies SPI (CHIRPS 1990-2024)', name:'Fréquence de saisons sèches', sub:'SPI-6 avr-sept ≤ −1 · part des 35 saisons', lut:'chirps', src:()=>D.freq6, scale:[0,0.3], legend:'Fréquence SPI-6 ≤ −1 (part des saisons)', ticks:['0','15 %','≥ 30 %'], spi:true},
+  {k:'freqsev6', name:'Fréquence de saisons sévères', sub:'SPI-6 ≤ −1,5', lut:'chirps', src:()=>D.freqsev6, scale:[0,0.2], legend:'Fréquence SPI-6 ≤ −1,5', ticks:['0','10 %','≥ 20 %'], spi:true},
+  {k:'sev6', name:'Sévérité moyenne', sub:'sévérité McKee 0-3 moyennée, /3', lut:'chirps', src:()=>D.sev6, scale:[0,0.15], legend:'Sévérité moyenne SPI-6 (0–1)', ticks:['0','0,075','≥ 0,15'], spi:true},
+  {k:'freq3', name:'Fréquence de saisons sèches (SPI-3)', sub:'juillet-septembre', lut:'chirps', src:()=>D.freq3, scale:[0,0.3], legend:'Fréquence SPI-3 JAS ≤ −1', ticks:['0','15 %','≥ 30 %'], spi:true},
+  {k:'freq12', name:'Fréquence d\'années sèches (SPI-12)', sub:'année civile', lut:'chirps', src:()=>D.freq12, scale:[0,0.3], legend:'Fréquence SPI-12 ≤ −1', ticks:['0','15 %','≥ 30 %'], spi:true},
+  {k:'spi6', name:'SPI-6 d\'une saison', sub:'curseur temporel 1990-2024', lut:'BrBG', src:()=>SPI6[state.year], scale:[-2.5,2.5], legend:'SPI-6 avril-septembre', ticks:['≤ −2,5 (sec)','0','≥ +2,5 (humide)'], spi:true},
+  {k:'min6', name:'Pire saison (SPI-6 minimal)', sub:'intensité du pire épisode', lut:'chirps', src:()=>D.min6, scale:[0,-3], legend:'SPI-6 minimal 1990-2024', ticks:['0','−1,5','≤ −3'], spi:true},
+  {k:'worst6', name:'Année de la pire saison', sub:'année du SPI-6 minimal', lut:'viridis', src:()=>D.worst6, scale:[1990,2024], legend:'Année du SPI-6 minimal', ticks:['1990','2007','2024'], spi:true},
+  {k:'trend6', name:'Tendance du SPI-6', sub:'pente linéaire 1990-2024', lut:'RdBu', src:()=>D.trend6, scale:[-0.6,0.6], legend:'Tendance SPI-6 (unités SPI / décennie)', ticks:['≤ −0,6 (assèchement)','0','≥ +0,6 (humidification)'], spi:true},
+  {k:'pmean6', name:'Pluie moyenne avril-septembre', sub:'CHIRPS 1981-2024, mm', lut:'YlGnBu', src:()=>D.pmean6, scale:[0,700], legend:'Pluie moyenne avr-sept (mm)', ticks:['0','350','≥ 700']},
+);
+const canvases = {};
+function renderLayer(k){
+  const L_ = LAYERS.find(l=>l.k===k); const src = L_.src();
+  const c = canvases[k] || (canvases[k] = document.createElement('canvas')); c.width=W; c.height=H;
+  const g = c.getContext('2d'); const img = g.createImageData(W,H); const d = img.data;
+  const lut = LUT[L_.lut]; const [slo, shi] = L_.scale || [0,1];
+  for (let i=0;i<N;i++){
+    const v = src[i]; const o=i*4;
+    if (isNaN(v)) { d[o+3]=0; continue; }
+    let col;
+    if (k==='classes'){ const cl = CLASSES.find(cc => v>=cc.lo && v<cc.hi) || CLASSES[4]; col = hex2rgb(cl.col); }
+    else col = lut[Math.max(0, Math.min(255, Math.round((v-slo)/(shi-slo)*255)))];
+    d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=255;
+  }
+  g.putImageData(img,0,0);
+  return c.toDataURL('image/png');
+}
+
+/* ---------- carte ---------- */
+const map = L.map('map', {center:[17.0, 8.6], zoom:6, minZoom:5, maxZoom:12, zoomControl:false, preferCanvas:true, attributionControl:true});
+L.control.zoom({position:'topright'}).addTo(map);
+L.control.scale({imperial:false, position:'bottomright'}).addTo(map);
+const BASEMAPS = {
+  positron:{name:'Clair', layer:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16, attribution:'Esri, HERE, Garmin, © OpenStreetMap contributors'})},
+  dark:{name:'Sombre', layer:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16, attribution:'Esri, HERE, Garmin, © OpenStreetMap contributors'})},
+  osm:{name:'OSM', layer:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'})},
+  sat:{name:'Satellite', layer:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18, attribution:'Esri, Maxar, Earthstar Geographics'})},
+  topo:{name:'Relief', layer:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{subdomains:'abc', maxZoom:16, attribution:'© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'})},
+};
+BASEMAPS.positron.layer.addTo(map);
+const llBounds = L.latLngBounds(B[0], B[1]);
+const mainOverlay = L.imageOverlay('', llBounds, {opacity:state.opacity, interactive:false, zIndex:200}).addTo(map);
+const cmpOverlay  = L.imageOverlay('', llBounds, {opacity:state.opacity, interactive:false, zIndex:201});
+const paneTop = map.createPane('vec'); paneTop.style.zIndex = 450;
+const borderLayer = L.geoJSON(DATA.niger_geojson, {pane:'vec', interactive:false, style:{color:'#111', weight:2.2, fill:false, dashArray:null}}).addTo(map);
+let regionLayer = null, labelLayer = L.layerGroup().addTo(map), cityLayer = L.layerGroup().addTo(map), aqLayer = L.layerGroup();
+function regionStyle(f){
+  const r = REG.find(x=>x.region===f.properties.NAME_1);
+  const choro = $('#ovChoro').checked;
+  const sel = state.selRegion === f.properties.NAME_1;
+  return {color: sel ? '#000' : '#333', weight: sel ? 3 : 1.4, fillColor: choro && r ? colorFor(r.ivs_mean) : '#000', fillOpacity: choro ? .75 : 0, dashArray: null};
+}
+function colorFor(v){ const c = LUT.ivs[Math.max(0,Math.min(255,Math.round(v*255)))]; return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function buildRegions(){
+  if (regionLayer) regionLayer.remove();
+  regionLayer = L.geoJSON(DATA.regions_geojson, {pane:'vec', style:regionStyle,
+    onEachFeature:(f, ly) => {
+      ly.on('mouseover', e => { ly.setStyle({weight:3, color:'#ff3b30'}); ly.bringToFront(); });
+      ly.on('mouseout', e => { regionLayer.resetStyle(ly); });
+      ly.on('click', e => { L.DomEvent.stop(e); if (state.compare) return; selectRegion(f.properties.NAME_1, false); openPixelPopup(e.latlng); });
+      ly.bindTooltip(() => { const r = REG.find(x=>x.region===f.properties.NAME_1); return `<b>${f.properties.NAME_1}</b><br>IVS moyen : ${fmt(r.ivs_mean)} · rang ${r.rank}/8`; }, {sticky:true});
+    }});
+  if ($('#ovRegions').checked) regionLayer.addTo(map);
+}
+function buildLabels(){
+  labelLayer.clearLayers();
+  for (const r of regStatic) if (r.name !== 'Niamey') L.tooltip({permanent:true, direction:'center', className:'rlabel', interactive:false}).setLatLng(r.centroid).setContent(r.name).addTo(labelLayer); // Niamey : le chef-lieu suffit
+}
+function buildCities(){
+  cityLayer.clearLayers();
+  for (const [n,la,lo] of CITIES) L.marker([la,lo], {icon:L.divIcon({className:'', html:'<div class="city-icon"></div>', iconSize:[9,9], iconAnchor:[5,5]}), pane:'vec'}).bindTooltip(n, {direction:'right', offset:[6,0]}).addTo(cityLayer);
+}
+function buildAquifers(){
+  aqLayer.clearLayers();
+  AQUIFERS.forEach((a,i) => {
+    L.marker(a.ll, {icon:L.divIcon({className:'', html:`<div class="aq-icon"><i class="fa-solid fa-water"></i></div>`, iconSize:[24,24], iconAnchor:[12,12]}), pane:'vec'})
+      .bindPopup(`<h4><i class="fa-solid fa-water"></i> ${a.n}</h4><div style="color:#666;font-size:12px;margin-bottom:4px">${a.type}</div><div>${a.txt}</div><div style="color:#888;font-size:11px;margin-top:6px">Localisation indicative — synthèse hydrogéologique, à confronter aux cartes BRGM/ORSTOM et aux données SIGNER.</div>`, {maxWidth:320})
+      .bindTooltip(a.n).addTo(aqLayer);
+  });
+}
+buildLabels(); buildCities(); buildAquifers();
+
+/* ---------- légende ---------- */
+function renderLegend(){
+  const L_ = LAYERS.find(l=>l.k===state.layer); const el = $('#legend');
+  let html = `<h4>${L_.legend}</h4>`;
+  if (state.layer==='classes' || $('#ovChoro').checked && state.layer!=='classes'){
+    html += `<div class="cls">${CLASSES.map(c=>`<div><i style="background:${c.col}"></i>${c.name} <span style="color:var(--muted)">(${fmt(c.lo,1)}–${fmt(Math.min(c.hi,1),1)})</span></div>`).join('')}</div>`;
+    if (state.layer!=='classes') html = `<h4>${L_.legend}</h4>` + rampHtml(L_) + `<div style="margin-top:6px;font-weight:600;font-size:11.5px">Choroplèthe régional</div>` + html.replace(`<h4>${L_.legend}</h4>`,'');
+  } else html += rampHtml(L_);
+  if (state.mode==='mult' && (state.layer==='ivs'||state.layer==='classes')) html += `<div class="src" style="margin-top:4px">Mode risque : √(aléa × exposition)</div>`;
+  if ((state.rain!=='clim' || state.hydro!=='pub') && (state.layer==='ivs'||state.layer==='classes'||state.layer==='delta')) html += `<div class="src" style="margin-top:4px">${state.rain!=='clim' ? 'Aléa pluie : '+RAIN[state.rain].short : ''}${state.rain!=='clim' && state.hydro!=='pub' ? ' · ' : ''}${state.hydro!=='pub' ? 'Hydro : '+HYDRO[state.hydro].short : ''}</div>`;
+  if (L_.k==='spi6') html += `<div style="margin-top:4px;font-weight:700">Saison ${state.year}</div>`;
+  if (L_.spi) html += `<div class="src" style="margin-top:4px">Non évalué (transparent) : pluie < 50 mm/saison ou > 30 % de saisons nulles — SPI non fiable.</div>`;
+  el.innerHTML = html;
+}
+function rampHtml(L_){
+  const lut = LUT[L_.lut]; const stops = []; for (let i=0;i<=10;i++){ const c = lut[Math.round(i/10*255)]; stops.push(`rgb(${c[0]},${c[1]},${c[2]})`); }
+  const t = L_.ticks || ['0','0,5','1'];
+  return `<div class="ramp" style="background:linear-gradient(90deg,${stops.join(',')})"></div><div class="ticks"><span>${t[0]}</span><span>${t[1]}</span><span>${t[2]}</span></div>`;
+}
+
+/* ---------- inspecteur ---------- */
+function pixelAt(latlng){
+  const col = Math.floor((latlng.lng - Wlon)/(E-Wlon)*W), row = Math.floor((Nlat - latlng.lat)/(Nlat-S)*H);
+  if (col<0||col>=W||row<0||row>=H) return null; const i = row*W+col; if (!valid[i]) return null;
+  return {i, col, row, ivs:IVS[i], ref:REF[i], region: grids.region[i] ? REGION_NAMES[grids.region[i]-1] : '—', f: Object.fromEntries(FACTORS.map(x=>[x.k, F[x.k][i]])),
+          d: HAS_DROUGHT ? {freq6:D.freq6[i], freqsev6:D.freqsev6[i], trend6:D.trend6[i], worst6:D.worst6[i], min6:D.min6[i], pmean6:D.pmean6[i], spi:SPI6[state.year] ? SPI6[state.year][i] : NaN} : null};
+}
+function droughtHtml(p){
+  if (!p.d) return '';
+  const d = p.d; const pm = isNaN(d.pmean6) ? '—' : Math.round(d.pmean6)+' mm';
+  if (isNaN(d.freq6)) return `<div class="src" style="margin-top:6px"><b>Aléa SPI</b> : non évalué (pluie avr-sept ${pm}, SPI non fiable en zone hyper-aride).</div>`;
+  return `<table style="margin-top:6px"><tr><td><b>Aléa SPI (1990-2024)</b></td><td class="num">pluie ${pm}</td></tr>
+  <tr><td>Saisons SPI-6 ≤ −1 / ≤ −1,5</td><td class="num">${Math.round(d.freq6*35)} / ${Math.round(d.freqsev6*35)} sur 35</td></tr>
+  <tr><td>Pire saison</td><td class="num">${isNaN(d.worst6)?'—':Math.round(d.worst6)} (SPI ${fmt(d.min6,2)})</td></tr>
+  <tr><td>Tendance</td><td class="num">${(d.trend6>=0?'+':'')+fmt(d.trend6,2)} SPI/décennie</td></tr>
+  ${isNaN(d.spi)?'':`<tr><td>SPI-6 ${state.year}</td><td class="num">${(d.spi>=0?'+':'')+fmt(d.spi,2)}</td></tr>`}</table>`;
+}
+function classOf(v){ return CLASSES.find(c=>v>=c.lo && v<c.hi) || CLASSES[4]; }
+function contribOf(p){
+  if (state.mode==='add'){ const sw = Object.values(state.w).reduce((a,b)=>a+b,0); const o={}; let t=0; for (const f of FACTORS){ o[f.k] = isNaN(p.f[f.k])?0:state.w[f.k]*p.f[f.k]/sw; t+=o[f.k]; } for (const k in o) o[k] = t? o[k]/t : 0; return o; }
+  const sh = state.w.chirps+state.w.ndvi+state.w.hydro; const o={}; let t=0;
+  for (const f of FACTORS){ o[f.k] = f.k==='pop' ? 0.5*(isNaN(p.f.pop)?0:p.f.pop) : 0.5*state.w[f.k]*(isNaN(p.f[f.k])?0:p.f[f.k])/sh; t+=o[f.k]; } for (const k in o) o[k] = t? o[k]/t:0; return o;
+}
+function inspectorHtml(p, full){
+  const cl = classOf(p.ivs); const cb = contribOf(p);
+  let h = `<div class="hdr">${p.region} · <span class="pill" style="background:${cl.col}">${cl.name}</span></div><table>`;
+  h += `<tr><td><b>IVS</b></td><td><b>${fmt(p.ivs)}</b></td></tr>`;
+  for (const f of FACTORS) h += `<tr><td><i class="fa-solid ${f.icon}" style="width:14px;color:var(--muted)"></i> ${f.short}</td><td>${fmt(p.f[f.k],2)} <span style="color:var(--muted);font-weight:400">(${Math.round(cb[f.k]*100)} %)</span></td></tr>`;
+  if (full) h += `<tr><td>Référence</td><td>${fmt(p.ref)} (Δ ${(p.ivs-p.ref>=0?'+':'')+fmt(p.ivs-p.ref)})</td></tr>`;
+  h += `</table>`; if (full) h += `<div class="src" style="margin-top:4px">Cellule ${p.col},${p.row} · entre parenthèses : part de chaque facteur dans l'indice</div>`;
+  return h;
+}
+map.on('mousemove', e => { if (!state.inspect) return; const p = pixelAt(e.latlng); const el=$('#inspector'); if (!p){ el.innerHTML='<div class="src">Hors du territoire</div>'; return; } el.innerHTML = inspectorHtml(p,false); });
+function openPixelPopup(latlng){
+  const p = pixelAt(latlng); if (!p) return;
+  const r = REG.find(x=>x.region===p.region);
+  const reg = r ? `<table style="margin-top:6px"><tr><td><b>Région ${r.region}</b></td><td class="num">rang ${r.rank}/8</td></tr><tr><td>IVS moyen · P90</td><td class="num">${fmt(r.ivs_mean)} · ${fmt(r.ivs_p90)}</td></tr><tr><td>Surface ≥ 0,6</td><td class="num">${pct(r.pct_gt_0_6)}</td></tr></table>` : '';
+  L.popup({maxWidth:300}).setLatLng(latlng).setContent(`<h4>Valeurs locales (cellule ≈ 5,5 km)</h4>`+inspectorHtml(p,true)+droughtHtml(p)+reg).openOn(map);
+}
+map.on('click', e => { if (!state.compare) openPixelPopup(e.latlng); });
+
+/* ---------- panneau : couches ---------- */
+function layerName(L_){ return L_.k==='chirps' ? {name:RAIN[state.rain].name, sub:RAIN[state.rain].sub} : L_.k==='hydro' ? {name:HYDRO[state.hydro].name, sub:HYDRO[state.hydro].sub} : {name:L_.name, sub:L_.sub}; }
+function buildLayerList(){
+  const el = $('#layerList'); el.innerHTML='';
+  for (const L_ of LAYERS){
+    if (L_.group){ const h = document.createElement('div'); h.className='src'; h.style.cssText='font-weight:600;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.04em;font-size:11px'; h.textContent = L_.group; el.appendChild(h); }
+    const lut = LUT[L_.lut]; let bg;
+    if (L_.k==='classes') bg = `linear-gradient(90deg,${CLASSES.map(c=>c.col).join(',')})`;
+    else { const st=[]; for (let i=0;i<=6;i++){ const c=lut[Math.round(i/6*255)]; st.push(`rgb(${c[0]},${c[1]},${c[2]})`);} bg=`linear-gradient(90deg,${st.join(',')})`; }
+    const nm = layerName(L_);
+    const d = document.createElement('div'); d.className='layer-item'+(state.layer===L_.k?' on':''); d.dataset.k=L_.k;
+    d.innerHTML = `<span class="sw" style="background:${bg}"></span><span class="nm">${nm.name}<small>${nm.sub}</small></span><i class="fa-solid ${state.layer===L_.k?'fa-eye':'fa-eye-slash'}" style="color:var(--muted)"></i>`;
+    d.onclick = () => { state.layer = L_.k; refreshMain(); buildLayerList(); renderLegend(); saveHash(); };
+    el.appendChild(d);
+  }
+  $('#yearBox').style.display = state.layer==='spi6' ? 'block' : 'none';
+}
+/* curseur temporel SPI-6 */
+let playTimer = null;
+function setYear(y){ state.year = +y; $('#yearSlider').value = y; $('#yearVal').textContent = y + (DROUGHT.series ? ` — SPI-6 national ${(DROUGHT.series.national.spi6[YEARS.indexOf(+y)]>=0?'+':'')+fmt(DROUGHT.series.national.spi6[YEARS.indexOf(+y)],2)} · ${DROUGHT.series.national.spi6_pct_dry[YEARS.indexOf(+y)]} % du territoire évalué en déficit` : ''); if (state.layer==='spi6'){ refreshMain(); renderLegend(); } if (state.compare && (state.cmpR==='spi6')) refreshCompare(); saveHash(); }
+if (HAS_DROUGHT){
+  $('#yearSlider').min = YEARS[0]; $('#yearSlider').max = YEARS[YEARS.length-1];
+  $('#yearSlider').oninput = e => setYear(e.target.value);
+  $('#yearPlay').onclick = () => { if (playTimer){ clearInterval(playTimer); playTimer=null; $('#yearPlay').innerHTML='<i class="fa-solid fa-play"></i>'; return; }
+    $('#yearPlay').innerHTML='<i class="fa-solid fa-pause"></i>'; playTimer = setInterval(()=>{ const i = YEARS.indexOf(state.year); setYear(YEARS[(i+1)%YEARS.length]); }, 700); };
+}
+function refreshMain(){ mainOverlay.setUrl(renderLayer(state.layer)); }
+$('#opacity').oninput = e => { state.opacity = e.target.value/100; $('#opVal').textContent = e.target.value+' %'; mainOverlay.setOpacity(state.opacity); cmpOverlay.setOpacity(state.opacity); };
+$('#smooth').onchange = e => { state.smooth = e.target.checked; document.getElementById('map').classList.toggle('pixelated', !state.smooth); };
+document.getElementById('map').classList.add('pixelated');
+$('#ovRegions').onchange = e => { e.target.checked ? regionLayer.addTo(map) : regionLayer.remove(); };
+$('#ovChoro').onchange = () => { regionLayer.setStyle(regionStyle); renderLegend(); };
+$('#ovLabels').onchange = e => { e.target.checked ? labelLayer.addTo(map) : labelLayer.remove(); };
+$('#ovCities').onchange = e => { e.target.checked ? cityLayer.addTo(map) : cityLayer.remove(); };
+const syncAq = v => { $('#ovAquifers').checked = v; $('#ovAquifers2').checked = v; v ? aqLayer.addTo(map) : aqLayer.remove(); };
+$('#ovAquifers').onchange = e => syncAq(e.target.checked); $('#ovAquifers2').onchange = e => syncAq(e.target.checked);
+$('#ovBorder').onchange = e => { e.target.checked ? borderLayer.addTo(map) : borderLayer.remove(); };
+(function(){ const el=$('#basemaps'); for (const k in BASEMAPS){ const c=document.createElement('span'); c.className='chip'+(k===state.basemap?' active':''); c.textContent=BASEMAPS[k].name;
+  c.onclick=()=>{ for (const j in BASEMAPS) map.removeLayer(BASEMAPS[j].layer); BASEMAPS[k].layer.addTo(map); state.basemap=k; $$('#basemaps .chip').forEach(x=>x.classList.remove('active')); c.classList.add('active');
+    const dark = k==='dark'||k==='sat'; $$('.rlabel').forEach(t=>{ t.style.color = dark?'#fff':'#111'; t.style.textShadow = dark?'0 0 3px #000,0 0 3px #000,0 0 3px #000':'0 0 3px #fff,0 0 3px #fff,0 0 3px #fff'; }); };
+  el.appendChild(c);} })();
+
+(function(){ const s = $('#goto'); s.innerHTML = '<option value="">— Niger entier —</option><optgroup label="Régions">' + REGION_NAMES.map(n=>`<option value="r:${n}">${n}</option>`).join('') + '</optgroup><optgroup label="Chefs-lieux">' + CITIES.map(c=>`<option value="c:${c[0]}">${c[0]}</option>`).join('') + '</optgroup>';
+  s.onchange = () => { const v = s.value; if (!v) { map.fitBounds(llBounds, {padding:[10,10]}); return; }
+    if (v.startsWith('r:')) selectRegion(v.slice(2), true); else { const c = CITIES.find(x=>x[0]===v.slice(2)); map.flyTo([c[1],c[2]], 9); } }; })();
+
+/* ---------- panneau : modèle ---------- */
+function buildWeights(){
+  const el = $('#weights'); el.innerHTML='';
+  for (const f of FACTORS){
+    const d = document.createElement('div'); d.className='wrow';
+    d.innerHTML = `<div class="lbl"><i class="fa-solid ${f.icon}" style="color:var(--muted);width:16px"></i> ${f.short}<small>${f.name}</small></div><input type="range" min="0" max="100" step="5" value="${Math.round(state.w[f.k]*100)}" data-k="${f.k}"><div class="val" id="wv-${f.k}">${fmt(state.w[f.k],2)}</div>`;
+    el.appendChild(d);
+    d.querySelector('input').oninput = e => { state.w[f.k] = e.target.value/100; $('#wv-'+f.k).textContent = fmt(state.w[f.k],2); updateSum(); $$('#presets .chip').forEach(c=>c.classList.remove('active')); $('#presetDesc').textContent='Scénario personnalisé.'; scheduleRecompute(); };
+  }
+  updateSum();
+}
+function updateSum(){ const s = Object.values(state.w).reduce((a,b)=>a+b,0); $('#wSum').textContent = fmt(s,2); $('#wSum').style.color = Math.abs(s-1)>0.001 ? 'var(--warn)' : 'inherit'; }
+function buildPresets(){
+  const el = $('#presets'); el.innerHTML='';
+  const cur = presetMatch();
+  for (const p of PRESETS){ const c=document.createElement('span'); c.className='chip'+(cur && p.id===cur.id?' active':''); c.textContent=p.name; c.dataset.id=p.id;
+    c.onclick=()=>applyPreset(p); el.appendChild(c); }
+  $('#presetDesc').textContent = cur ? cur.desc : 'Scénario personnalisé (chargé depuis le lien).';
+}
+function applyPreset(p){ state.w = {...p.w}; state.mode = p.mode; $$('#presets .chip').forEach(c=>c.classList.toggle('active', c.dataset.id===p.id)); $('#presetDesc').textContent = p.desc;
+  const rain = p.rain || 'clim', hyd = p.hydro || 'pub';
+  if (rain !== state.rain || hyd !== state.hydro){ state.rain = rain; state.hydro = hyd; applyRain(); buildRainChips(); buildLayerList(); }
+  $$('[data-mode]').forEach(c=>c.classList.toggle('active', c.dataset.mode===state.mode)); buildWeights(); updateEq(); scheduleRecompute(); }
+function buildRainChips(){
+  if (HAS_DROUGHT){ $('#rainSec').style.display='block'; const el = $('#rainChips'); el.innerHTML='';
+    for (const k in RAIN){ const c = document.createElement('span'); c.className='chip'+(k===state.rain?' active':''); c.textContent = RAIN[k].short; c.title = RAIN[k].name; c.onclick = () => setVariant('rain', k); el.appendChild(c); }
+    $('#rainDesc').textContent = RAIN[state.rain].desc; }
+  if (HAS_HYDRO){ $('#hydroSec').style.display='block'; const el = $('#hydroChips'); el.innerHTML='';
+    for (const k in HYDRO){ const c = document.createElement('span'); c.className='chip'+(k===state.hydro?' active':''); c.textContent = HYDRO[k].short; c.title = HYDRO[k].name; c.onclick = () => setVariant('hydro', k); el.appendChild(c); }
+    $('#hydroDesc').textContent = HYDRO[state.hydro].desc; }
+}
+function presetMatch(){ return PRESETS.find(q => q.mode===state.mode && (q.rain||'clim')===state.rain && (q.hydro||'pub')===state.hydro && FACTORS.every(f=>Math.abs(q.w[f.k]-state.w[f.k])<1e-6)); }
+function setVariant(which, k){ if (state[which]===k) return; state[which] = k; applyRain(); buildRainChips(); buildLayerList(); buildWeights(); updateEq();
+  const pr = presetMatch(); $$('#presets .chip').forEach(c=>c.classList.toggle('active', !!pr && c.dataset.id===pr.id)); $('#presetDesc').textContent = pr ? pr.desc : 'Scénario personnalisé.'; scheduleRecompute(); }
+$$('[data-mode]').forEach(c => c.onclick = () => { state.mode = c.dataset.mode; $$('[data-mode]').forEach(x=>x.classList.toggle('active', x===c)); $$('#presets .chip').forEach(x=>x.classList.remove('active')); updateEq(); scheduleRecompute(); });
+function updateEq(){
+  const w = state.w, sw = Object.values(w).reduce((a,b)=>a+b,0)||1;
+  const P = FACTORS[0].short.replace(/\s/g,'');
+  if (state.mode==='add'){ $('#eqBox').textContent = `IVS = (${fmt(w.chirps,2)}·${P} + ${fmt(w.ndvi,2)}·NDVI + ${fmt(w.hydro,2)}·Hydro + ${fmt(w.pop,2)}·Pop) / ${fmt(sw,2)}`;
+    $('#modeDesc').textContent = 'Somme pondérée (compensatoire) : un facteur favorable compense un facteur défavorable. C\'est la méthode de la carte initiale.' + (state.rain!=='clim' ? ' Là où le SPI n\'est pas évalué (nord hyper-aride), le facteur pluie est ignoré et les autres poids renormalisés.' : ''); }
+  else { const sh = w.chirps+w.ndvi+w.hydro||1; $('#eqBox').textContent = `Aléa = (${fmt(w.chirps,2)}·${P} + ${fmt(w.ndvi,2)}·NDVI + ${fmt(w.hydro,2)}·Hydro) / ${fmt(sh,2)}\nRisque = √(Aléa × Pop)`;
+    $('#modeDesc').textContent = 'Moyenne géométrique de l\'aléa composite et de l\'exposition : sans population, pas de risque. Le poids « Population » est ignoré dans ce mode (l\'exposition entre à puissance ½).'; }
+}
+let recomputeTimer = null;
+function scheduleRecompute(){ clearTimeout(recomputeTimer); recomputeTimer = setTimeout(recomputeAll, 120); }
+function recomputeAll(){
+  compute(); REG = regionStats(); REG.sort((a,b)=>b.ivs_mean-a.ivs_mean).forEach((r,i)=>r.rank=i+1); NAT = nationalStats();
+  refreshMain(); if (state.compare) refreshCompare();
+  if (regionLayer) regionLayer.setStyle(regionStyle); else buildRegions();
+  renderLegend(); renderNational(); renderTable(); renderDelta(); renderRankChart(); renderHist(); if (state.selRegion) renderRegionDetail(state.selRegion); renderHydroTable();
+  $('#modelTag').textContent = (state.mode==='add' ? '· modèle additif' : '· mode risque') + (state.rain!=='clim' ? ' · aléa ' + RAIN[state.rain].short : '') + (state.hydro!=='pub' ? ' · ' + HYDRO[state.hydro].short : '');
+  saveHash();
+}
+
+/* ---------- panneau : régions ---------- */
+function barHtml(cls){ return cls.map((p,i)=>`<i style="width:${p}%;background:${CLASSES[i].col}" title="${CLASSES[i].name} : ${pct(p)}"></i>`).join(''); }
+function legHtml(cls){ return CLASSES.map((c,i)=>`<div style="background:${c.col}">${c.name}<br><b>${pct(cls[i])}</b></div>`).join(''); }
+function renderNational(){
+  $('#natKpis').innerHTML = `<div class="kpi"><b>${fmt(NAT.mean)}</b><span>IVS moyen national</span></div><div class="kpi"><b>${pct(NAT.pct6)}</b><span>du territoire ≥ 0,6</span></div><div class="kpi"><b>${Math.round(regStatic.reduce((a,r)=>a+r.area,0)/1000).toLocaleString('fr-FR')} k km²</b><span>surface analysée</span></div>`;
+  $('#natBar').innerHTML = barHtml(NAT.cls); $('#natLeg').innerHTML = legHtml(NAT.cls);
+}
+function renderTable(){
+  const tb = $('#regTable tbody'); const rows = [...REG];
+  const k = state.sortK; rows.sort((a,b)=> typeof a[k]==='string' ? a[k].localeCompare(b[k]) : (k==='rank'? a[k]-b[k] : b[k]-a[k]));
+  tb.innerHTML = rows.map(r => `<tr class="r${state.selRegion===r.region?' sel':''}" data-r="${r.region}"><td>${r.rank}</td><td><b>${r.region}</b></td><td class="num"><span class="pill" style="background:${classOf(r.ivs_mean).col}">${fmt(r.ivs_mean)}</span></td><td class="num">${pct(r.pct_gt_0_6)}</td><td><i class="fa-solid ${FACTORS.find(f=>f.k===r.driver).icon}" style="color:var(--muted)"></i> ${FACTORS.find(f=>f.k===r.driver).short} <span class="src">${Math.round(r.contrib[r.driver]*100)} %</span></td></tr>`).join('');
+  $$('#regTable tbody tr').forEach(tr => tr.onclick = () => selectRegion(tr.dataset.r, true));
+  $$('#regTable th').forEach(th => { th.classList.toggle('sorted', th.dataset.k===state.sortK); th.onclick = () => { state.sortK = th.dataset.k; renderTable(); }; });
+}
+function selectRegion(name, zoom){
+  state.selRegion = name; regionLayer.setStyle(regionStyle); renderTable(); renderRegionDetail(name);
+  $$('.tab').forEach(t=>t.classList.toggle('active', t.dataset.v==='regions')); $$('.view').forEach(v=>v.classList.toggle('active', v.id==='v-regions'));
+  if (zoom){ const f = DATA.regions_geojson.features.find(f=>f.properties.NAME_1===name); map.fitBounds(L.geoJSON(f).getBounds(), {padding:[20,20]}); }
+  $('#regDetail').scrollIntoView({behavior:'smooth', block:'start'});
+}
+let chContrib = null, chRank = null, chHist = null;
+const chartColors = () => ({text: getComputedStyle(document.body).color, grid: getComputedStyle(document.documentElement).getPropertyValue('--line').trim()});
+const FCOL = {chirps:'#c05621', ndvi:'#2f855a', hydro:'#2b6cb0', pop:'#805ad5'};
+function renderRegionDetail(name){
+  const r = REG.find(x=>x.region===name); if (!r) return; $('#regDetail').style.display='block'; $('#rdName').textContent = name;
+  $('#rdKpis').innerHTML = `<div class="kpi"><b>${fmt(r.ivs_mean)}</b><span>IVS moyen · rang ${r.rank}/8</span></div><div class="kpi"><b>${fmt(r.ivs_p90)}</b><span>P90 (max ${fmt(r.ivs_max)})</span></div><div class="kpi"><b>${pct(r.pct_gt_0_6)}</b><span>surface ≥ 0,6</span></div>`;
+  $('#rdBar').innerHTML = barHtml(r.classes); $('#rdLeg').innerHTML = legHtml(r.classes);
+  const hs = HAS_HYDRO && HYDROV.stats[name] ? ` <span class="src">(publiée ${fmt(HYDROV.stats[name].pub,2)} · Jenks ${fmt(HYDROV.stats[name].jenks,2)} · continue ${fmt(HYDROV.stats[name].cont,2)} · sans pluie ${fmt(HYDROV.stats[name].norain,2)})</span>` : '';
+  $('#rdHydro').innerHTML = `<b>Vuln. hydrogéologique moyenne : ${fmt(r.fmean.hydro,2)}</b>${hs}<br>${REGION_HYDRO[name]||''}`;
+  $('#rdZoom').onclick = () => { const f = DATA.regions_geojson.features.find(f=>f.properties.NAME_1===name); map.fitBounds(L.geoJSON(f).getBounds(), {padding:[20,20]}); };
+  renderSpiChart(name);
+  const cc = chartColors();
+  const data = { labels: FACTORS.map(f=>f.short), datasets:[
+    {label:'Valeur moyenne du facteur (0–1)', data:FACTORS.map(f=>r.fmean[f.k]), backgroundColor:FACTORS.map(f=>FCOL[f.k]+'66'), borderColor:FACTORS.map(f=>FCOL[f.k]), borderWidth:1},
+    {label:'Part dans l\'indice', data:FACTORS.map(f=>r.contrib[f.k]), backgroundColor:FACTORS.map(f=>FCOL[f.k]), borderWidth:0}] };
+  if (chContrib){ chContrib.data = data; chContrib.update(); return; }
+  chContrib = new Chart($('#chContrib'), {type:'bar', data, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{x:{min:0,max:1,ticks:{color:cc.text},grid:{color:cc.grid}}, y:{ticks:{color:cc.text},grid:{display:false}}}, plugins:{legend:{labels:{color:cc.text, boxWidth:10, font:{size:11}}}, tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${c.datasetIndex===0?fmt(c.raw,2):Math.round(c.raw*100)+' %'}`}}}}});
+}
+let chSpi = null;
+function renderSpiChart(name){
+  if (!HAS_DROUGHT) return; const s = DROUGHT.series.regions[name]; if (!s) return; $('#rdSpiBox').style.display='block';
+  const nat = DROUGHT.series.national; const n = YEARS.length;
+  $('#rdSpiKpis').innerHTML = `<div class="kpi"><b>${Math.round(s.freq6*n)} / ${n}</b><span>saisons SPI-6 ≤ −1 (${Math.round(s.freqsev6*n)} sévères)</span></div><div class="kpi"><b>${s.worst_years.join(', ')||'—'}</b><span>pires saisons</span></div><div class="kpi"><b>${(s.trend6>=0?'+':'')+fmt(s.trend6,2)}</b><span>SPI/décennie · ${s.reliable_pct} % évalué · ${s.pmean6_mm} mm</span></div>`;
+  const cc = chartColors();
+  const col = v => v<=-2 ? '#7f0000' : v<=-1.5 ? '#d7301f' : v<=-1 ? '#fc8d59' : v<0 ? '#fdd49e' : '#74c476';
+  const data = {labels: YEARS, datasets:[
+    {type:'bar', label:'SPI-6 '+name, data:s.spi6, backgroundColor:s.spi6.map(col), borderWidth:0, barPercentage:1, categoryPercentage:.9},
+    {type:'line', label:'SPI-6 Niger', data:nat.spi6, borderColor:cc.text, borderDash:[4,3], borderWidth:1.2, pointRadius:0, fill:false}]};
+  if (chSpi){ chSpi.data = data; chSpi.update(); return; }
+  chSpi = new Chart($('#chSpi'), {data, options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:cc.text, maxTicksLimit:8, font:{size:10}}, grid:{display:false}}, y:{min:-3, max:3, ticks:{color:cc.text, stepSize:1}, grid:{color:cc.grid}}},
+    plugins:{legend:{labels:{color:cc.text, boxWidth:10, font:{size:11}}}, tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${(c.raw>=0?'+':'')+fmt(c.raw,2)}` + (c.datasetIndex===0 ? ` · ${s.spi6_pct_dry[c.dataIndex]} % de la région en déficit` : '')}}},
+    onClick:(e,els)=>{ if (els.length){ setYear(YEARS[els[0].index]); if (state.layer!=='spi6'){ state.layer='spi6'; refreshMain(); buildLayerList(); renderLegend(); } } }}});
+}
+function renderRankChart(){
+  const rows = [...REG].sort((a,b)=>b.ivs_mean-a.ivs_mean); const cc = chartColors();
+  const data = {labels: rows.map(r=>r.region), datasets: FACTORS.map(f=>({label:f.short, data:rows.map(r=>r.contrib[f.k]*r.ivs_mean), backgroundColor:FCOL[f.k], stack:'s'}))};
+  if (chRank){ chRank.data = data; chRank.update(); return; }
+  chRank = new Chart($('#chRank'), {type:'bar', data, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{x:{stacked:true, min:0, max:1, title:{display:true, text:'IVS moyen, décomposé par facteur', color:cc.text, font:{size:11}}, ticks:{color:cc.text}, grid:{color:cc.grid}}, y:{stacked:true, ticks:{color:cc.text}, grid:{display:false}}},
+    plugins:{legend:{labels:{color:cc.text, boxWidth:10, font:{size:11}}}, tooltip:{callbacks:{label:c=>`${c.dataset.label} : ${fmt(c.raw)} (${Math.round(c.raw/rows[c.dataIndex].ivs_mean*100)} %)`, footer:items=>`IVS = ${fmt(rows[items[0].dataIndex].ivs_mean)}`}}},
+    onClick:(e,els)=>{ if (els.length) selectRegion(rows[els[0].index].region, true); }}});
+}
+function renderHist(){
+  const cc = chartColors(); const labels = NAT.hist.map((_,i)=>fmt(i/20,2));
+  const data = {labels, datasets:[{label:'% du territoire', data:NAT.hist, backgroundColor:NAT.hist.map((_,i)=>classOf(i/20+0.001).col), borderColor:'#5558', borderWidth:1, barPercentage:1, categoryPercentage:1}]};
+  if (chHist){ chHist.data = data; chHist.update(); return; }
+  chHist = new Chart($('#chHist'), {type:'bar', data, options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:cc.text, maxTicksLimit:6, font:{size:10}}, grid:{display:false}, title:{display:true,text:'IVS (classes de 0,05)',color:cc.text,font:{size:11}}}, y:{ticks:{color:cc.text, callback:v=>v+' %'}, grid:{color:cc.grid}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{title:i=>`IVS ${i[0].label} – ${fmt(+i[0].label.replace(',','.')+0.05,2)}`, label:c=>pct(c.raw)}}}}});
+}
+function renderDelta(){
+  if (!REFREG) return;
+  const tb = $('#deltaTable tbody');
+  tb.innerHTML = [...REG].sort((a,b)=>b.ivs_mean-a.ivs_mean).map(r => { const ref = REFREG.find(x=>x.region===r.region); const d = r.ivs_mean-ref.ivs_mean;
+    return `<tr><td><b>${r.region}</b></td><td class="num">${fmt(ref.ivs_mean)}</td><td class="num">${fmt(r.ivs_mean)}</td><td class="num" style="color:${Math.abs(d)<0.005?'inherit':d>0?'var(--danger)':'var(--accent2)'}">${d>=0?'+':''}${fmt(d)}</td><td class="num">${ref.rank} → ${r.rank}</td></tr>`; }).join('');
+}
+function renderHydroTable(){
+  $('#hydroTable').innerHTML = [...REG].sort((a,b)=>b.fmean.hydro-a.fmean.hydro).map(r => `<tr class="r" data-r="${r.region}"><td><b>${r.region}</b></td><td class="num"><span class="pill" style="background:${colorFor(r.fmean.hydro)}">${fmt(r.fmean.hydro,2)}</span></td><td style="white-space:normal;font-size:12px">${(REGION_HYDRO[r.region]||'').split('.')[0]}.</td></tr>`).join('');
+  $$('#hydroTable tr').forEach(tr => tr.onclick = () => selectRegion(tr.dataset.r, true));
+}
+(function(){ const el = $('#aqList'); el.innerHTML = '<h3>Unités hydrogéologiques (synthèse)</h3>' + AQUIFERS.map((a,i)=>`<details><summary><i class="fa-solid fa-water" style="color:var(--accent2)"></i> ${a.n} <span class="src">— ${a.type}</span></summary><p>${a.txt}</p><p><a href="#" data-aq="${i}"><i class="fa-solid fa-location-dot"></i> Voir sur la carte</a></p></details>`).join('');
+  $$('[data-aq]').forEach(a => a.onclick = e => { e.preventDefault(); syncAq(true); const q = AQUIFERS[+a.dataset.aq]; map.flyTo(q.ll, 8); setTimeout(()=>{ aqLayer.eachLayer(m => { if (m.getLatLng().equals(q.ll)) m.openPopup(); }); }, 700); });
+})();
+
+/* ---------- comparaison ---------- */
+const cmpbar = $('#cmpbar'); let cmpX = null;
+function refreshCompare(){ cmpOverlay.setUrl(renderLayer(state.cmpR)); if (state.layer!==state.cmpL){ state.layer = state.cmpL; refreshMain(); buildLayerList(); renderLegend(); } applyClip(); }
+function applyClip(){
+  if (!state.compare) return;
+  const mapEl = document.getElementById('map'); const mr = mapEl.getBoundingClientRect(); if (cmpX==null) cmpX = mr.width/2; cmpbar.style.left = cmpX+'px';
+  const clip = (img, left) => { if (!img) return; const r = img.getBoundingClientRect(); const x = mr.left + cmpX - r.left; const xs = x / r.width * W; // en pixels image (l'image est redimensionnée via CSS)
+    const px = Math.max(0, Math.min(r.width, x)); img.style.clipPath = left ? `inset(0 ${r.width-px}px 0 0)` : `inset(0 0 0 ${px}px)`; };
+  clip(mainOverlay.getElement(), true); clip(cmpOverlay.getElement(), false);
+}
+map.on('move zoom zoomanim viewreset resize', () => { if (state.compare) requestAnimationFrame(applyClip); });
+(function(){ let drag=false; cmpbar.addEventListener('pointerdown', e => { drag=true; cmpbar.setPointerCapture(e.pointerId); map.dragging.disable(); });
+  cmpbar.addEventListener('pointermove', e => { if(!drag) return; const mr = document.getElementById('map').getBoundingClientRect(); cmpX = Math.max(0, Math.min(mr.width, e.clientX - mr.left)); applyClip(); });
+  cmpbar.addEventListener('pointerup', () => { drag=false; map.dragging.enable(); }); })();
+function setCompare(on){
+  state.compare = on; $('#btnCompare').classList.toggle('active', on); cmpbar.style.display = on?'block':'none'; $('#cmplabels').style.display = on?'flex':'none';
+  if (on){ if (state.cmpR===state.layer) state.cmpR = LAYERS.find(l=>l.k!==state.layer).k; state.cmpL = state.layer; cmpOverlay.addTo(map); refreshCompare(); renderCmpLabels(); toast('Glissez la barre pour comparer. Choisissez la couche de droite dans l\'étiquette.'); }
+  else { cmpOverlay.remove(); const im = mainOverlay.getElement(); if (im) im.style.clipPath=''; }
+}
+function renderCmpLabels(){
+  const opt = sel => LAYERS.map(l=>`<option value="${l.k}" ${l.k===sel?'selected':''}>${l.name}</option>`).join('');
+  $('#cmpL').innerHTML = `◀ <select style="pointer-events:auto">${opt(state.cmpL)}</select>`; $('#cmpR').innerHTML = `<select style="pointer-events:auto">${opt(state.cmpR)}</select> ▶`;
+  $('#cmpL select').onchange = e => { state.cmpL = e.target.value; refreshCompare(); }; $('#cmpR select').onchange = e => { state.cmpR = e.target.value; refreshCompare(); };
+}
+$('#btnCompare').onclick = () => setCompare(!state.compare);
+$('#btnInspect').onclick = () => { state.inspect = !state.inspect; $('#btnInspect').classList.toggle('active', state.inspect); $('#inspector').classList.toggle('on', state.inspect); if (state.inspect) $('#inspector').innerHTML='<div class="src">Survolez la carte…</div>'; };
+
+/* ---------- export / partage / UI ---------- */
+$('#btnCsv').onclick = () => {
+  const head = ['region','rang','ivs_moyen','ivs_median','ivs_p90','ivs_max','pct_surface_ge_0.6','pct_surface_ge_0.8', ...CLASSES.map(c=>'pct_'+c.name), ...FACTORS.map(f=>'moy_'+f.k), ...FACTORS.map(f=>'part_'+f.k), 'facteur_dominant','surface_km2'];
+  const rows = [...REG].sort((a,b)=>a.rank-b.rank).map(r => [r.region, r.rank, r.ivs_mean, r.ivs_median, r.ivs_p90, r.ivs_max, r.pct_gt_0_6, r.pct_gt_0_8, ...r.classes, ...FACTORS.map(f=>r.fmean[f.k]), ...FACTORS.map(f=>r.contrib[f.k]), r.driver, r.area].map(v => typeof v==='number' ? v.toFixed(4).replace('.',',') : v));
+  const meta = [`# Niger IVS — export ${new Date().toISOString().slice(0,10)}`, `# mode=${state.mode}; alea_pluie=${state.rain}; hydro=${state.hydro}; poids: ${FACTORS.map(f=>f.k+'='+state.w[f.k]).join(' ')}`];
+  const csv = [...meta, head.join(';'), ...rows.map(r=>r.join(';'))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'})); a.download = `niger_ivs_regions_${state.mode}.csv`; a.click(); toast('CSV exporté');
+};
+function saveHash(){ const c = map.getCenter(); const h = `w=${FACTORS.map(f=>state.w[f.k]).join(',')}&m=${state.mode}&r=${state.rain}&h=${state.hydro}&y=${state.year}&l=${state.layer}&v=${c.lat.toFixed(3)},${c.lng.toFixed(3)},${map.getZoom()}`; history.replaceState(null,'','#'+h); }
+map.on('moveend', saveHash);
+$('#btnShare').onclick = async () => { saveHash(); try { await navigator.clipboard.writeText(location.href); toast('Lien copié (poids, mode, couche et vue inclus)'); } catch(e){ prompt('Copiez ce lien :', location.href); } };
+function loadHash(){
+  const p = new URLSearchParams(location.hash.slice(1)); if (!p.has('w')) return;
+  const w = p.get('w').split(',').map(Number); if (w.length===4 && w.every(x=>!isNaN(x))) FACTORS.forEach((f,i)=>state.w[f.k]=w[i]);
+  if (['add','mult'].includes(p.get('m'))) state.mode = p.get('m'); if (LAYERS.some(l=>l.k===p.get('l'))) state.layer = p.get('l');
+  if (RAIN[p.get('r')]) state.rain = p.get('r'); if (YEARS.includes(+p.get('y'))) state.year = +p.get('y');
+  const v = (p.get('v')||'').split(',').map(Number); if (v.length===3 && v.every(x=>!isNaN(x))) map.setView([v[0],v[1]], v[2]);
+  if (HYDRO[p.get('h')]) state.hydro = p.get('h');
+  const pr = presetMatch(); $$('#presets .chip').forEach(c=>c.classList.toggle('active', pr && c.dataset.id===pr.id)); $('#presetDesc').textContent = pr ? pr.desc : 'Scénario personnalisé (chargé depuis le lien).';
+  $$('[data-mode]').forEach(c=>c.classList.toggle('active', c.dataset.mode===state.mode));
+}
+$$('.tab').forEach(t => t.onclick = () => { $$('.tab').forEach(x=>x.classList.toggle('active', x===t)); $$('.view').forEach(v=>v.classList.toggle('active', v.id==='v-'+t.dataset.v)); $('.views').scrollTop = 0; setTimeout(()=>{ chRank&&chRank.resize(); chHist&&chHist.resize(); chContrib&&chContrib.resize(); }, 50); });
+const togglePanel = () => { const hidden = $('#panel').classList.toggle('hidden'); document.getElementById('map').classList.toggle('full', hidden); setTimeout(()=>map.invalidateSize(), 280); };
+$('#btnPanel').onclick = togglePanel; $('#panelToggle').onclick = togglePanel;
+$('#btnTheme').onclick = () => { const r = document.documentElement; const cur = r.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'); r.dataset.theme = cur==='dark' ? 'light' : 'dark';
+  [chRank, chHist, chContrib, chSpi].forEach(c => c && c.destroy()); chRank = chHist = chContrib = chSpi = null; renderRankChart(); renderHist(); if (state.selRegion) renderRegionDetail(state.selRegion); };
+document.addEventListener('keydown', e => { if (e.key==='Escape') { map.closePopup(); if (state.compare) setCompare(false); } });
+if (matchMedia('(max-width: 860px)').matches) { $('#panel').classList.add('hidden'); document.getElementById('map').classList.add('full'); }
+
+/* ---------- démarrage ---------- */
+// référence (poids publiés) pour les écarts
+compute(); REFREG = regionStats(); REFREG.sort((a,b)=>b.ivs_mean-a.ivs_mean).forEach((r,i)=>r.rank=i+1);
+loadHash(); applyRain(); if (HAS_DROUGHT) setYear(state.year);
+buildPresets(); buildRainChips(); buildWeights(); updateEq(); buildLayerList();
+compute(); REG = regionStats(); REG.sort((a,b)=>b.ivs_mean-a.ivs_mean).forEach((r,i)=>r.rank=i+1); NAT = nationalStats();
+buildRegions(); refreshMain(); renderLegend(); renderNational(); renderTable(); renderDelta(); renderRankChart(); renderHist(); renderHydroTable();
+$('#modelTag').textContent = state.mode==='add' ? '· modèle additif' : '· mode risque';
+map.fitBounds(llBounds, {padding:[10,10]}); if (location.hash.includes('v=')) loadHash();
+$('#loading').remove(); map.invalidateSize();
+})().catch(e => { console.error(e); const l = document.getElementById('loading'); if (l) l.innerHTML = '<div style="color:var(--danger)">Erreur de chargement : '+e.message+'</div>'; });
+</script>
+</body>
+</html>
